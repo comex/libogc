@@ -44,14 +44,14 @@ struct _sramcntrl {
 	s32 enabled;
 	s32 locked;
 	s32 sync;
-} __attribute__((packed)) sramcntrl;
+} sramcntrl ATTRIBUTE_ALIGN(32);
 
 typedef struct _yay0header {
 	unsigned int id;
 	unsigned int dec_size;
 	unsigned int links_offset;
 	unsigned int chunks_offset;
-} yay0header;
+} __attribute__((packed)) yay0header;
 
 static u16 sys_fontenc = 0xffff;
 static u32 sys_fontcharsinsheet = 0;
