@@ -50,7 +50,7 @@
  *
  * This file is part of the uIP TCP/IP stack.
  *
- * $Id: uipopt.h,v 1.3 2005/03/28 13:31:53 shagkur Exp $
+ * $Id: uipopt.h,v 1.5 2005/04/19 18:23:24 shagkur Exp $
  *
  */
 
@@ -425,7 +425,7 @@ typedef u16 uip_stats_t;
  *
  * \hideinitializer
  */
-#define UIP_BUFSIZE     1530
+#define UIP_BUFSIZE     1536
 
 
 /**
