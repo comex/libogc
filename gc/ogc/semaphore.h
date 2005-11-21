@@ -1,5 +1,7 @@
 /*-------------------------------------------------------------
 
+$Id: semaphore.h,v 1.5 2005/11/21 12:37:51 shagkur Exp $
+
 semaphore.h -- Thread subsystem IV
 
 Copyright (C) 2004
@@ -24,6 +26,12 @@ must not be misrepresented as being the original software.
 
 3.	This notice may not be removed or altered from any source
 distribution.
+
+$Log: semaphore.h,v $
+Revision 1.5  2005/11/21 12:37:51  shagkur
+Added copyright header(taken from libnds).
+Introduced RCS $Id$ and $Log$ token in project files.
+
 
 -------------------------------------------------------------*/
 
