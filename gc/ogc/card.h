@@ -1,5 +1,7 @@
 /*-------------------------------------------------------------
 
+$Id: card.h,v 1.19 2005/11/21 12:14:01 shagkur Exp $
+
 card.h -- Memory card subsystem
 
 Copyright (C) 2004
@@ -24,6 +26,11 @@ must not be misrepresented as being the original software.
 
 3.	This notice may not be removed or altered from any source
 distribution.
+
+$Log: card.h,v $
+Revision 1.19  2005/11/21 12:14:01  shagkur
+no message
+
 
 -------------------------------------------------------------*/
 

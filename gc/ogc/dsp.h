@@ -1,5 +1,7 @@
 /*-------------------------------------------------------------
 
+$Id: dsp.h,v 1.5 2005/11/21 12:13:45 shagkur Exp $
+
 dsp.h -- DSP subsystem
 
 Copyright (C) 2004
@@ -24,6 +26,11 @@ must not be misrepresented as being the original software.
 
 3.	This notice may not be removed or altered from any source
 distribution.
+
+$Log: dsp.h,v $
+Revision 1.5  2005/11/21 12:13:45  shagkur
+no message
+
 
 -------------------------------------------------------------*/
 
