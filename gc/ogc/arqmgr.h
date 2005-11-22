@@ -1,6 +1,6 @@
 /*-------------------------------------------------------------
 
-$Id: arqmgr.h,v 1.6 2005/11/22 13:58:25 shagkur Exp $
+$Id: arqmgr.h,v 1.7 2005/11/22 14:00:37 shagkur Exp $
 
 arqmgr.h -- ARAM task queue management
 
@@ -28,6 +28,9 @@ must not be misrepresented as being the original software.
 distribution.
 
 $Log: arqmgr.h,v $
+Revision 1.7  2005/11/22 14:00:37  shagkur
+- small typo fix
+
 Revision 1.6  2005/11/22 13:58:25  shagkur
 - added copyright header (taken from libnds)
 - introduced CVS ID and LOG token
@@ -76,7 +79,7 @@ void ARQM_Init(u32 arambase,u32 len);
 
 /*!
  * \fn u32 ARQM_PushData(void *buff,u32 len,ARQMCallback tccb)
- * \brief Initialize the ARAM queue management system
+ * \brief Push the data onto the ARAM queue
  *
  * \param[in] buff startaddress of buffer to be pushed onto the queue. <b><i>NOTE:</i></b> Has to be aligned on a 32byte boundery!
  * \param[in] len length of data to be pushed onto the queue.
