@@ -1,6 +1,6 @@
 /*-------------------------------------------------------------
 
-$Id: arqmgr.c,v 1.5 2005/11/21 12:42:30 shagkur Exp $
+$Id: arqmgr.c,v 1.6 2005/11/22 13:52:51 shagkur Exp $
 
 arqmgr.c -- ARAM task request queue management
 
@@ -28,9 +28,15 @@ must not be misrepresented as being the original software.
 distribution.
 
 $Log: arqmgr.c,v $
+Revision 1.6  2005/11/22 13:52:51  shagkur
+- moved internal defines to .c file
+
 Revision 1.5  2005/11/21 12:42:30  shagkur
 - Added copyright header(taken from libnds).
-- Introduced RCS $Id$ and $Log$ token in project files.
+- Introduced RCS $Id: arqmgr.c,v 1.6 2005/11/22 13:52:51 shagkur Exp $ and $Log: arqmgr.c,v $
+- Introduced RCS $Id$ and Revision 1.6  2005/11/22 13:52:51  shagkur
+- Introduced RCS $Id$ and - moved internal defines to .c file
+- Introduced RCS $Id$ and token in project files.
 
 
 -------------------------------------------------------------*/
@@ -42,6 +48,9 @@ Revision 1.5  2005/11/21 12:42:30  shagkur
 #include "processor.h"
 #include "arqueue.h"
 #include "arqmgr.h"
+
+#define ARQM_STACKENTRIES		16
+#define ARQM_ZEROBYTES			256
 
 typedef struct _arqm_info {
 	ARQRequest arqhandle;
