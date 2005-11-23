@@ -1,6 +1,6 @@
 /*-------------------------------------------------------------
 
-$Id: cache.h,v 1.5 2005/11/21 13:57:47 shagkur Exp $
+$Id: cache.h,v 1.6 2005/11/23 07:50:56 shagkur Exp $
 
 cache.h -- Cache interface
 
@@ -28,9 +28,15 @@ must not be misrepresented as being the original software.
 distribution.
 
 $Log: cache.h,v $
+Revision 1.6  2005/11/23 07:50:56  shagkur
+- adjusted doxygen style comment blocks
+
 Revision 1.5  2005/11/21 13:57:47  shagkur
 - Added copyright header(taken from libnds).
-- Introduced RCS $Id$ and $Log$ token in project files.
+- Introduced RCS $Id: cache.h,v 1.6 2005/11/23 07:50:56 shagkur Exp $ and $Log: cache.h,v $
+- Introduced RCS $Id$ and Revision 1.6  2005/11/23 07:50:56  shagkur
+- Introduced RCS $Id$ and - adjusted doxygen style comment blocks
+- Introduced RCS $Id$ and token in project files.
 - documentation started in doxygen style
 
 Revision 1.4  2005/11/21 12:14:01  shagkur
@@ -117,6 +123,7 @@ void DCFlashInvalidate();
  * \brief Invalidates a given range of the d-cache.
  *
  *        If any part of the range hits in the d-cache, the corresponding block will be invalidated.
+ *
  * \param[in] startaddress pointer to the startaddress of the memory range to invalidate. <b><i>NOTE:</i></b> Has to be aligned on a 32byte boundery
  * \param[in] len length of the range to invalidate. <b><i>NOTE:</i></b> Should be a multiple of 32
  *
@@ -131,6 +138,7 @@ void DCInvalidateRange(void *startaddress,u32 len);
  *
  *        If any part of the range hits in the d-cache the corresponding block will be flushed to main memory and invalidated.<br>
  *        <b><i>NOTE:</i></b> This function invokes a "sync" after flushing the range. This means the function will stall until the CPU knows that the data has been writen to main memory
+ *
  * \param[in] startaddress pointer to the startaddress of the memory range to flush. <b><i>NOTE:</i></b> Has to be aligned on a 32byte boundery
  * \param[in] len length of range to be flushed. <b><i>NOTE:</i></b> Should be a multiple of 32
  *
@@ -143,6 +151,7 @@ void DCFlushRange(void *startaddress,u32 len);
  * \brief Ensures a range of memory is updated with any modified data in the cache.
  *
  *        <b><i>NOTE:</i></b> This function invokes a "sync" after storing the range. This means the function will stall until the CPU knows that the data has been writen to main memory
+ *
  * \param[in] startaddress pointer to the startaddress of the memory range to store. <b><i>NOTE:</i></b> Has to be aligned on a 32byte boundery
  * \param[in] len length of the range to store. <b><i>NOTE:</i></b> Should be a multiple of 32
  *
@@ -156,7 +165,8 @@ void DCStoreRange(void *startaddress,u32 len);
  * \brief Flushes a given range. 
  *
  *        If any part of the range hits in the d-cache the corresponding block will be flushed to main memory and invalidated.<br>
- *        <b><i>NOTE:</i></b> This routine does not perform a "sync" to ensure that the range has been flushed to memory.  That is, the cache blocks are sent to the bus interface unit for storage to main memory, but by the time this function returns, you are not guaranteed that the blocks have been written to memory
+ *        <b><i>NOTE:</i></b> This routine does not perform a "sync" to ensure that the range has been flushed to memory.  That is, the cache blocks are sent to the bus interface unit for storage to main memory, but by the time this function returns, you are not guaranteed that the blocks have been written to memory.
+ *
  * \param[in] startaddress pointer to the startaddress of the memory range to flush. <b><i>NOTE:</i></b> Has to be aligned on a 32byte boundery
  * \param[in] len length of range to be flushed. <b><i>NOTE:</i></b> Should be a multiple of 32
  *
@@ -170,6 +180,7 @@ void DCFlushRangeNoSync(void *startaddress,u32 len);
  * \brief Ensures a range of memory is updated with any modified data in the cache.
  *
  *        <b><i>NOTE:</i></b> This routine does not perform a "sync" to ensure that the range has been flushed to memory.  That is, the cache blocks are sent to the bus interface unit for storage to main memory, but by the time this function returns, you are not guaranteed that the blocks have been written to memory
+ *
  * \param[in] startaddress pointer to the startaddress of the memory range to store. <b><i>NOTE:</i></b> Has to be aligned on a 32byte boundery
  * \param[in] len length of the range to store. <b><i>NOTE:</i></b> Should be a multiple of 32
  *
@@ -180,7 +191,8 @@ void DCStoreRangeNoSync(void *startaddress,u32 len);
 
 /*! 
  * \fn void DCZeroRange(void *startaddress,u32 len)
- * \brief Loads a range of memory into cache and zeroes all the cache lines. 
+ * \brief Loads a range of memory into cache and zeroes all the cache lines.
+ *
  * \param[in] startaddress pointer to the startaddress of the memory range to load/zero. <b><i>NOTE:</i></b> Has to be aligned on a 32byte boundery
  * \param[in] len length of the range to load/zero. <b><i>NOTE:</i></b> Should be a multiple of 32
  *
@@ -192,6 +204,7 @@ void DCZeroRange(void *startaddress,u32 len);
 /*! 
  * \fn void DCTouchRange(void *startaddress,u32 len)
  * \brief Loads a range of memory into cache.
+ *
  * \param[in] startaddress pointer to the startaddress of the memory range to load. <b><i>NOTE:</i></b> Has to be aligned on a 32byte boundery
  * \param[in] len length of the range to load. <b><i>NOTE:</i></b> Should be a multiple of 32
  *
@@ -270,6 +283,7 @@ void ICUnfreeze();
  * \brief Invalidates a block in the i-cache. 
  *
  *        If the block hits in the i-cache, the corresponding block will be invalidated.
+ *
  * \param[in] startaddress pointer to the startaddress of the memory block to invalidate. <b><i>NOTE:</i></b> Has to be aligned on a 32byte boundery
  *
  *\return none
@@ -282,6 +296,7 @@ void ICBlockInvalidate(void *startaddress);
  * \brief Invalidate a range in the L1 i-cache. 
  *
  *        If any part of the range hits in the i-cache, the corresponding block will be invalidated.
+ *
  * \param[in] startaddress pointer to the startaddress of the memory range to invalidate. <b><i>NOTE:</i></b> Has to be aligned on a 32byte boundery
  * \param[in] len length of the range to invalidate. <b><i>NOTE:</i></b> Should be a multiple of 32
  *
