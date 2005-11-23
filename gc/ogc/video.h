@@ -1,6 +1,6 @@
 /*-------------------------------------------------------------
 
-$Id: video.h,v 1.16 2005/11/23 07:53:07 shagkur Exp $
+$Id: video.h,v 1.17 2005/11/23 07:53:53 shagkur Exp $
 
 video.h -- VIDEO subsystem
 
@@ -28,18 +28,15 @@ must not be misrepresented as being the original software.
 distribution.
 
 $Log: video.h,v $
+Revision 1.17  2005/11/23 07:53:53  shagkur
+no message
+
 Revision 1.16  2005/11/23 07:53:07  shagkur
 - adjusted documentation blocks
 - moved all defines ande externs to video_types.h
 
 Revision 1.15  2005/11/21 12:37:51  shagkur
 Added copyright header(taken from libnds).
-Introduced RCS $Id: video.h,v 1.16 2005/11/23 07:53:07 shagkur Exp $ and $Log: video.h,v $
-Introduced RCS $Id$ and Revision 1.16  2005/11/23 07:53:07  shagkur
-Introduced RCS $Id$ and - adjusted documentation blocks
-Introduced RCS $Id$ and - moved all defines ande externs to video_types.h
-Introduced RCS $Id$ and token in project files.
-
 
 -------------------------------------------------------------*/
 
