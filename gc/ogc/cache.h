@@ -1,6 +1,6 @@
 /*-------------------------------------------------------------
 
-$Id: cache.h,v 1.7 2005/12/09 09:20:49 shagkur Exp $
+$Id: cache.h,v 1.8 2005/12/09 09:43:38 shagkur Exp $
 
 cache.h -- Cache interface
 
@@ -28,6 +28,9 @@ must not be misrepresented as being the original software.
 distribution.
 
 $Log: cache.h,v $
+Revision 1.8  2005/12/09 09:43:38  shagkur
+no message
+
 Revision 1.7  2005/12/09 09:20:49  shagkur
 no message
 
@@ -36,13 +39,6 @@ Revision 1.6  2005/11/23 07:50:56  shagkur
 
 Revision 1.5  2005/11/21 13:57:47  shagkur
 - Added copyright header(taken from libnds).
-- Introduced RCS $Id: cache.h,v 1.7 2005/12/09 09:20:49 shagkur Exp $ and $Log: cache.h,v $
-- Introduced RCS $Id: cache.h,v 1.7 2005/12/09 09:20:49 shagkur Exp $ and Revision 1.7  2005/12/09 09:20:49  shagkur
-- Introduced RCS $Id: cache.h,v 1.7 2005/12/09 09:20:49 shagkur Exp $ and no message
-- Introduced RCS $Id: cache.h,v 1.7 2005/12/09 09:20:49 shagkur Exp $ and
-- Introduced RCS $Id: cache.h,v 1.7 2005/12/09 09:20:49 shagkur Exp $ and Revision 1.6  2005/11/23 07:50:56  shagkur
-- Introduced RCS $Id: cache.h,v 1.7 2005/12/09 09:20:49 shagkur Exp $ and - adjusted doxygen style comment blocks
-- Introduced RCS $Id: cache.h,v 1.7 2005/12/09 09:20:49 shagkur Exp $ and token in project files.
 - documentation started in doxygen style
 
 Revision 1.4  2005/11/21 12:14:01  shagkur
