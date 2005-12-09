@@ -1,6 +1,6 @@
 /*-------------------------------------------------------------
 
-$Id: dsp.h,v 1.6 2005/11/22 07:14:55 shagkur Exp $
+$Id: dsp.h,v 1.7 2005/12/09 09:21:32 shagkur Exp $
 
 dsp.h -- DSP subsystem
 
@@ -28,9 +28,15 @@ must not be misrepresented as being the original software.
 distribution.
 
 $Log: dsp.h,v $
+Revision 1.7  2005/12/09 09:21:32  shagkur
+no message
+
 Revision 1.6  2005/11/22 07:14:55  shagkur
 - Added copyright header(taken from libnds).
-- Introduced RCS $Id$ and $Log$ token in project files.
+- Introduced RCS $Id: dsp.h,v 1.7 2005/12/09 09:21:32 shagkur Exp $ and $Log: dsp.h,v $
+- Introduced RCS $Id$ and Revision 1.7  2005/12/09 09:21:32  shagkur
+- Introduced RCS $Id$ and no message
+- Introduced RCS $Id$ and token in project files.
 - documentation started in doxygen style
 
 Revision 1.5  2005/11/21 12:13:45  shagkur

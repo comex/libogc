@@ -1,6 +1,6 @@
 /*-------------------------------------------------------------
 
-$Id: video.h,v 1.17 2005/11/23 07:53:53 shagkur Exp $
+$Id: video.h,v 1.18 2005/12/09 09:21:32 shagkur Exp $
 
 video.h -- VIDEO subsystem
 
@@ -28,6 +28,9 @@ must not be misrepresented as being the original software.
 distribution.
 
 $Log: video.h,v $
+Revision 1.18  2005/12/09 09:21:32  shagkur
+no message
+
 Revision 1.17  2005/11/23 07:53:53  shagkur
 no message
 

@@ -1,6 +1,6 @@
 /*-------------------------------------------------------------
 
-$Id: message.h,v 1.4 2005/11/21 12:37:51 shagkur Exp $
+$Id: message.h,v 1.5 2005/12/09 09:21:32 shagkur Exp $
 
 message.h -- Thread subsystem II
 
@@ -28,9 +28,15 @@ must not be misrepresented as being the original software.
 distribution.
 
 $Log: message.h,v $
+Revision 1.5  2005/12/09 09:21:32  shagkur
+no message
+
 Revision 1.4  2005/11/21 12:37:51  shagkur
 Added copyright header(taken from libnds).
-Introduced RCS $Id$ and $Log$ token in project files.
+Introduced RCS $Id: message.h,v 1.5 2005/12/09 09:21:32 shagkur Exp $ and $Log: message.h,v $
+Introduced RCS $Id$ and Revision 1.5  2005/12/09 09:21:32  shagkur
+Introduced RCS $Id$ and no message
+Introduced RCS $Id$ and token in project files.
 
 
 -------------------------------------------------------------*/

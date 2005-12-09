@@ -1,6 +1,6 @@
 /*-------------------------------------------------------------
 
-$Id: audio.h,v 1.5 2005/11/22 11:19:33 shagkur Exp $
+$Id: audio.h,v 1.6 2005/12/09 09:20:49 shagkur Exp $
 
 audio.h -- Audio subsystem
 
@@ -28,6 +28,9 @@ must not be misrepresented as being the original software.
 distribution.
 
 $Log: audio.h,v $
+Revision 1.6  2005/12/09 09:20:49  shagkur
+no message
+
 Revision 1.5  2005/11/22 11:19:33  shagkur
 - adjusted doxygen documentation style in file.
 

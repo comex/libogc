@@ -1,6 +1,6 @@
 /*-------------------------------------------------------------
 
-$Id: video.c,v 1.42 2005/11/22 07:19:15 shagkur Exp $
+$Id: video.c,v 1.43 2005/12/09 09:35:45 shagkur Exp $
 
 video.c -- VIDEO subsystem
 
@@ -28,6 +28,9 @@ must not be misrepresented as being the original software.
 distribution.
 
 $Log: video.c,v $
+Revision 1.43  2005/12/09 09:35:45  shagkur
+no message
+
 Revision 1.42  2005/11/22 07:19:15  shagkur
 - added internal function to retrieve the next framebuffer address. used for the console window initialization.
 

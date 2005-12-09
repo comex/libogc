@@ -1,6 +1,6 @@
 /*-------------------------------------------------------------
 
-$Id: arqueue.h,v 1.5 2005/11/21 12:41:27 shagkur Exp $
+$Id: arqueue.h,v 1.6 2005/12/09 09:20:49 shagkur Exp $
 
 arqueue.h -- ARAM task request queue implementation
 
@@ -28,9 +28,15 @@ must not be misrepresented as being the original software.
 distribution.
 
 $Log: arqueue.h,v $
+Revision 1.6  2005/12/09 09:20:49  shagkur
+no message
+
 Revision 1.5  2005/11/21 12:41:27  shagkur
 - Added copyright header(taken from libnds).
-- Introduced RCS $Id$ and $Log$ token in project files.
+- Introduced RCS $Id: arqueue.h,v 1.6 2005/12/09 09:20:49 shagkur Exp $ and $Log: arqueue.h,v $
+- Introduced RCS $Id$ and Revision 1.6  2005/12/09 09:20:49  shagkur
+- Introduced RCS $Id$ and no message
+- Introduced RCS $Id$ and token in project files.
 
 
 -------------------------------------------------------------*/

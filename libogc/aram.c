@@ -1,6 +1,6 @@
 /*-------------------------------------------------------------
 
-$Id: aram.c,v 1.7 2005/11/23 16:36:03 shagkur Exp $
+$Id: aram.c,v 1.8 2005/12/09 09:35:45 shagkur Exp $
 
 aram.c -- ARAM subsystem
 
@@ -28,6 +28,9 @@ must not be misrepresented as being the original software.
 distribution.
 
 $Log: aram.c,v $
+Revision 1.8  2005/12/09 09:35:45  shagkur
+no message
+
 Revision 1.7  2005/11/23 16:36:03  shagkur
 - moved a define from .h
 

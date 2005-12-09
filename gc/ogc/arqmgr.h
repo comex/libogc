@@ -1,6 +1,6 @@
 /*-------------------------------------------------------------
 
-$Id: arqmgr.h,v 1.7 2005/11/22 14:00:37 shagkur Exp $
+$Id: arqmgr.h,v 1.8 2005/12/09 09:20:49 shagkur Exp $
 
 arqmgr.h -- ARAM task queue management
 
@@ -28,6 +28,9 @@ must not be misrepresented as being the original software.
 distribution.
 
 $Log: arqmgr.h,v $
+Revision 1.8  2005/12/09 09:20:49  shagkur
+no message
+
 Revision 1.7  2005/11/22 14:00:37  shagkur
 - small typo fix
 

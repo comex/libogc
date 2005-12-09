@@ -1,6 +1,6 @@
 /*-------------------------------------------------------------
 
-$Id: lwp.h,v 1.10 2005/11/21 12:13:33 shagkur Exp $
+$Id: lwp.h,v 1.11 2005/12/09 09:21:32 shagkur Exp $
 
 lwp.h -- Thread subsystem I
 
@@ -28,6 +28,9 @@ must not be misrepresented as being the original software.
 distribution.
 
 $Log: lwp.h,v $
+Revision 1.11  2005/12/09 09:21:32  shagkur
+no message
+
 Revision 1.10  2005/11/21 12:13:33  shagkur
 no message
 
