@@ -1,6 +1,6 @@
 /*-------------------------------------------------------------
 
-$Id: card.c,v 1.55 2005/12/17 23:10:57 shagkur Exp $
+$Id: card.c,v 1.56 2005/12/21 06:46:31 shagkur Exp $
 
 card.c -- Memory card subsystem
 
@@ -28,6 +28,9 @@ must not be misrepresented as being the original software.
 distribution.
 
 $Log: card.c,v $
+Revision 1.56  2005/12/21 06:46:31  shagkur
+- fixded filename problem in the file creation functions
+
 Revision 1.55  2005/12/17 23:10:57  shagkur
 - finished format function
 
@@ -2652,7 +2655,7 @@ s32 CARD_Write(card_file *file,void *buffer,u32 len,u32 offset)
 
 s32 CARD_CreateAsync(s32 chn,const char *filename,u32 size,card_file *file,cardcallback callback)
 {
-	u32 i;
+	u32 i,len;
 	s32 ret,filenum;
 	cardcallback cb = NULL;
 	card_block *card = NULL;
@@ -2698,8 +2701,10 @@ s32 CARD_CreateAsync(s32 chn,const char *filename,u32 size,card_file *file,cardc
 	if(!cb) cb = __card_defaultapicallback;
 	card->card_api_cb = cb;
 	
+	len = strlen(filename);
 	entry[filenum].length = size/card->sector_size;
-	memcpy(entry[filenum].filename,filename,CARD_FILENAMELEN);
+	memset(entry[filenum].filename,0,CARD_FILENAMELEN);
+	strncpy(entry[filenum].filename,filename,(len>CARD_FILENAMELEN?CARD_FILENAMELEN:len));
 	
 	card->curr_file = file;
 	file->chn = chn;
@@ -2724,7 +2729,7 @@ s32 CARD_Create(s32 chn,const char *filename,u32 size,card_file *file)
 
 s32 CARD_CreateEntryAsync(s32 chn,card_dir *direntry,card_file *file,cardcallback callback)
 {
-	u32 i;
+	u32 i,len;
 	s32 ret,filenum;
 	cardcallback cb = NULL;
 	card_block *card = NULL;
@@ -2770,8 +2775,10 @@ s32 CARD_CreateEntryAsync(s32 chn,card_dir *direntry,card_file *file,cardcallbac
 	if(!cb) cb = __card_defaultapicallback;
 	card->card_api_cb = cb;
 	
+	len = strlen(direntry->filename);
 	entry[filenum].length = direntry->filelen/card->sector_size;
-	memcpy(entry[filenum].filename,direntry->filename,CARD_FILENAMELEN);
+	memset(entry[filenum].filename,0,CARD_FILENAMELEN);
+	strncpy(entry[filenum].filename,direntry->filename,(len>CARD_FILENAMELEN?CARD_FILENAMELEN:len));
 	
 	card->curr_file = file;
 	file->chn = chn;
