@@ -1,6 +1,6 @@
 /*-------------------------------------------------------------
 
-$Id: lwp.c,v 1.26 2006/05/02 14:18:14 shagkur Exp $
+$Id: lwp.c,v 1.27 2006/05/02 14:39:55 shagkur Exp $
 
 lwp.c -- Thread subsystem I
 
@@ -28,6 +28,9 @@ must not be misrepresented as being the original software.
 distribution.
 
 $Log: lwp.c,v $
+Revision 1.27  2006/05/02 14:39:55  shagkur
+no message
+
 Revision 1.26  2006/05/02 14:18:14  shagkur
 - changed LWP_GetSelf() to not issue a context switch
 
