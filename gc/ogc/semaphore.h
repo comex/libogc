@@ -1,6 +1,6 @@
 /*-------------------------------------------------------------
 
-$Id: semaphore.h,v 1.6 2005/12/09 09:21:32 shagkur Exp $
+$Id: semaphore.h,v 1.7 2006/05/02 09:39:34 shagkur Exp $
 
 semaphore.h -- Thread subsystem IV
 
@@ -28,15 +28,21 @@ must not be misrepresented as being the original software.
 distribution.
 
 $Log: semaphore.h,v $
+Revision 1.7  2006/05/02 09:39:34  shagkur
+- changed handle typedef
+
 Revision 1.6  2005/12/09 09:21:32  shagkur
 no message
 
 Revision 1.5  2005/11/21 12:37:51  shagkur
 Added copyright header(taken from libnds).
-Introduced RCS $Id: semaphore.h,v 1.6 2005/12/09 09:21:32 shagkur Exp $ and $Log: semaphore.h,v $
-Introduced RCS $Id$ and Revision 1.6  2005/12/09 09:21:32  shagkur
-Introduced RCS $Id$ and no message
-Introduced RCS $Id$ and token in project files.
+Introduced RCS $Id: semaphore.h,v 1.7 2006/05/02 09:39:34 shagkur Exp $ and $Log: semaphore.h,v $
+Introduced RCS $Id: semaphore.h,v 1.7 2006/05/02 09:39:34 shagkur Exp $ and Revision 1.7  2006/05/02 09:39:34  shagkur
+Introduced RCS $Id: semaphore.h,v 1.7 2006/05/02 09:39:34 shagkur Exp $ and - changed handle typedef
+Introduced RCS $Id: semaphore.h,v 1.7 2006/05/02 09:39:34 shagkur Exp $ and
+Introduced RCS $Id: semaphore.h,v 1.7 2006/05/02 09:39:34 shagkur Exp $ and Revision 1.6  2005/12/09 09:21:32  shagkur
+Introduced RCS $Id: semaphore.h,v 1.7 2006/05/02 09:39:34 shagkur Exp $ and no message
+Introduced RCS $Id: semaphore.h,v 1.7 2006/05/02 09:39:34 shagkur Exp $ and token in project files.
 
 
 -------------------------------------------------------------*/
@@ -53,15 +59,17 @@ Introduced RCS $Id$ and token in project files.
 
 #include <gctypes.h>
 
+#define LWP_SEM_NULL			0xffffffff
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 
-/*! \typedef void* sem_t
+/*! \typedef u32 sem_t
 \brief typedef for the semaphore handle
 */
-typedef void* sem_t;
+typedef u32 sem_t;
 
 
 /*! \fn s32 LWP_SemInit(sem_t *sem,u32 start,u32 max)

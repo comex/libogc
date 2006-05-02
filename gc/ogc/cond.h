@@ -1,6 +1,6 @@
 /*-------------------------------------------------------------
 
-$Id: cond.h,v 1.5 2005/12/09 09:21:32 shagkur Exp $
+$Id: cond.h,v 1.6 2006/05/02 09:39:34 shagkur Exp $
 
 cond.h -- Thread subsystem V
 
@@ -28,6 +28,9 @@ must not be misrepresented as being the original software.
 distribution.
 
 $Log: cond.h,v $
+Revision 1.6  2006/05/02 09:39:34  shagkur
+- changed handle typedef
+
 Revision 1.5  2005/12/09 09:21:32  shagkur
 no message
 
@@ -54,10 +57,10 @@ extern "C" {
 #endif
 
 
-/*! \typedef void* cond_t
+/*! \typedef u32 cond_t
 \brief typedef for the condition variable handle
 */
-typedef void* cond_t;
+typedef u32 cond_t;
 
 
 /*! \fn s32 LWP_CondInit(cond_t *cond)

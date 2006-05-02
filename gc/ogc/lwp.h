@@ -1,6 +1,6 @@
 /*-------------------------------------------------------------
 
-$Id: lwp.h,v 1.12 2006/04/10 05:35:24 shagkur Exp $
+$Id: lwp.h,v 1.13 2006/05/02 09:39:34 shagkur Exp $
 
 lwp.h -- Thread subsystem I
 
@@ -28,6 +28,9 @@ must not be misrepresented as being the original software.
 distribution.
 
 $Log: lwp.h,v $
+Revision 1.13  2006/05/02 09:39:34  shagkur
+- changed handle typedef
+
 Revision 1.12  2006/04/10 05:35:24  shagkur
 - changed function prototypes
 
@@ -51,6 +54,7 @@ no message
 
 #include <gctypes.h>
 
+#define LWP_CLOSED					-1
 #define LWP_SUCCESSFUL				0
 #define LWP_ALLREADY_SUSPENDED		1
 #define LWP_NOT_SUSPENDED			2
@@ -63,16 +67,16 @@ extern "C" {
 #endif
 
 
-/*! \typedef void* lwp_t
+/*! \typedef u32 lwp_t
 \brief typedef for the thread context handle
 */
-typedef void* lwp_t;
+typedef u32 lwp_t;
 
 
-/*! \typedef void* lwpq_t
+/*! \typedef u32 lwpq_t
 \brief typedef for the thread queue's context handle
 */
-typedef void* lwpq_t;
+typedef u32 lwpq_t;
 
 /*! \fn s32 LWP_CreateThread(lwp_t *thethread,void* (*entry)(void *),void *arg,void *stackbase,u32 stack_size,u8 prio)
 \brief Spawn a new thread with the given parameters
@@ -106,13 +110,13 @@ s32 LWP_SuspendThread(lwp_t thethread);
 s32 LWP_ResumeThread(lwp_t thethread);
 
 
-/*! \fn s32 LWP_ThreadIsSuspended(lwp_t thethread)
+/*! \fn BOOL LWP_ThreadIsSuspended(lwp_t thethread)
 \brief Test whether the given thread is suspended or not
 \param[in] thethread handle to the thread context which should be tested.
 
 \return TRUE or FALSE
 */
-s32 LWP_ThreadIsSuspended(lwp_t thethread);
+BOOL LWP_ThreadIsSuspended(lwp_t thethread);
 
 
 /*! \fn lwp_t LWP_GetSelf()
@@ -164,9 +168,9 @@ s32 LWP_JoinThread(lwp_t thethread,void **value_ptr);
 \brief Initialize the thread synchronization queue
 \param[in] thequeue pointer to a lwpq_t handle.
 
-\return none
+\return 0 on success, <0 on error
 */
-void LWP_InitQueue(lwpq_t *thequeue);
+s32 LWP_InitQueue(lwpq_t *thequeue);
 
 
 /*! \fn void LWP_CloseQueue(lwpq_t thequeue)
