@@ -1,6 +1,6 @@
 /*-------------------------------------------------------------
 
-$Id: semaphore.c,v 1.10 2006/05/02 09:38:21 shagkur Exp $
+$Id: semaphore.c,v 1.11 2006/05/02 11:56:10 shagkur Exp $
 
 semaphore.c -- Thread subsystem IV
 
@@ -28,6 +28,9 @@ must not be misrepresented as being the original software.
 distribution.
 
 $Log: semaphore.c,v $
+Revision 1.11  2006/05/02 11:56:10  shagkur
+- changed object handling & thread protection
+
 Revision 1.10  2006/05/02 09:38:21  shagkur
 - changed object handling and handle typedef
 - removed ISR disabling
@@ -65,7 +68,6 @@ void __lwp_sema_init()
 
 static __inline__ sema_st* __lwp_sema_open(sem_t sem)
 {
-	__lwp_thread_dispatchdisable();
 	return (sema_st*)__lwp_objmgr_get(&_lwp_sema_objects,sem);
 }
 
@@ -81,8 +83,12 @@ static sema_st* __lwp_sema_allocate()
 
 	__lwp_thread_dispatchdisable();
 	sema = (sema_st*)__lwp_objmgr_allocate(&_lwp_sema_objects);
-	if(sema) __lwp_objmgr_open(&_lwp_sema_objects,&sema->object);
-	return sema;
+	if(sema) {
+		__lwp_objmgr_open(&_lwp_sema_objects,&sema->object);
+		return sema;
+	}
+	__lwp_thread_dispatchenable();
+	return NULL;
 }
 
 s32 LWP_SemInit(sem_t *sem,u32 start,u32 max)
@@ -92,12 +98,8 @@ s32 LWP_SemInit(sem_t *sem,u32 start,u32 max)
 
 	if(!sem) return -1;
 	
-
 	ret = __lwp_sema_allocate();
-	if(!ret) {
-		__lwp_thread_dispatchenable();
-		return -1;
-	}
+	if(!ret) return -1;
 
 	attr.max_cnt = max;
 	attr.mode = LWP_SEMA_MODEFIFO;
@@ -113,10 +115,8 @@ s32 LWP_SemWait(sem_t sem)
 	sema_st *lwp_sem;
 
 	lwp_sem = __lwp_sema_open(sem);
-	if(!lwp_sem) {
-		__lwp_thread_dispatchenable();
-		return -1;
-	}
+	if(!lwp_sem) return -1;
+
 	__lwp_sema_seize(&lwp_sem->sema,lwp_sem->object.id,TRUE,LWP_THREADQ_NOTIMEOUT);
 	__lwp_thread_dispatchenable();
 
@@ -139,10 +139,7 @@ s32 LWP_SemPost(sem_t sem)
 	sema_st *lwp_sem;
 
 	lwp_sem = __lwp_sema_open(sem);
-	if(!lwp_sem) {
-		__lwp_thread_dispatchenable();
-		return -1;
-	}
+	if(!lwp_sem) return -1;
 
 	__lwp_sema_surrender(&lwp_sem->sema,lwp_sem->object.id);
 	__lwp_thread_dispatchenable();
@@ -155,10 +152,8 @@ s32 LWP_SemDestroy(sem_t sem)
 	sema_st *lwp_sem;
 
 	lwp_sem = __lwp_sema_open(sem);
-	if(!lwp_sem) {
-		__lwp_thread_dispatchenable();
-		return -1;
-	}
+	if(!lwp_sem) return -1;
+
 	__lwp_sema_flush(&lwp_sem->sema,-1);
 	__lwp_thread_dispatchenable();
 

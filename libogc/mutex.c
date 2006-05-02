@@ -1,6 +1,6 @@
 /*-------------------------------------------------------------
 
-$Id: mutex.c,v 1.11 2006/05/02 09:38:21 shagkur Exp $
+$Id: mutex.c,v 1.12 2006/05/02 11:56:10 shagkur Exp $
 
 mutex.c -- Thread subsystem III
 
@@ -28,6 +28,9 @@ must not be misrepresented as being the original software.
 distribution.
 
 $Log: mutex.c,v $
+Revision 1.12  2006/05/02 11:56:10  shagkur
+- changed object handling & thread protection
+
 Revision 1.11  2006/05/02 09:38:21  shagkur
 - changed object handling and handle typedef
 - removed ISR disabling
@@ -63,12 +66,9 @@ static s32 __lwp_mutex_locksupp(mutex_t lock,u32 timeout,u8 block)
 	u32 level;
 	mutex_st *p;
 
-	_CPU_ISR_Disable(level);
-	p = (mutex_st*)__lwp_objmgr_get(&_lwp_mutex_objects,lock);
-	if(!p) {
-		_CPU_ISR_Restore(level);
-		return -1;
-	}
+	p = (mutex_st*)__lwp_objmgr_get_isrdisable(&_lwp_mutex_objects,lock,&level);
+	if(!p) return -1;
+
 	__lwp_mutex_seize(&p->mutex,p->object.id,block,timeout,level);
 	return _thr_executing->wait.ret_code;
 }
@@ -81,7 +81,6 @@ void __lwp_mutex_init()
 
 static __inline__ mutex_st* __lwp_mutex_open(mutex_t lock)
 {
-	__lwp_thread_dispatchdisable();
 	return (mutex_st*)__lwp_objmgr_get(&_lwp_mutex_objects,lock);
 }
 
@@ -97,8 +96,12 @@ static mutex_st* __lwp_mutex_allocate()
 
 	__lwp_thread_dispatchdisable();
 	lock = (mutex_st*)__lwp_objmgr_allocate(&_lwp_mutex_objects);
-	if(lock) __lwp_objmgr_open(&_lwp_mutex_objects,&lock->object);
-	return lock;
+	if(lock) {
+		__lwp_objmgr_open(&_lwp_mutex_objects,&lock->object);
+		return lock;
+	}
+	__lwp_thread_dispatchenable();
+	return NULL;
 }
 
 s32 LWP_MutexInit(mutex_t *mutex,boolean use_recursive)
@@ -109,10 +112,7 @@ s32 LWP_MutexInit(mutex_t *mutex,boolean use_recursive)
 	if(!mutex) return -1;
 
 	ret = __lwp_mutex_allocate();
-	if(!ret) {
-		__lwp_thread_dispatchenable();
-		return -1;
-	}
+	if(!ret) return -1;
 
 	attr.mode = LWP_MUTEX_FIFO;
 	attr.nest_behavior = use_recursive?LWP_MUTEX_NEST_ACQUIRE:LWP_MUTEX_NEST_ERROR;
@@ -130,10 +130,7 @@ s32 LWP_MutexDestroy(mutex_t mutex)
 	mutex_st *p;
 
 	p = __lwp_mutex_open(mutex);
-	if(!p) {
-		__lwp_thread_dispatchenable();
-		return 0;
-	}
+	if(!p) return 0;
 
 	if(__lwp_mutex_locked(&p->mutex)) {
 		__lwp_thread_dispatchenable();
@@ -162,10 +159,8 @@ s32 LWP_MutexUnlock(mutex_t mutex)
 	mutex_st *lock;
 
 	lock = __lwp_mutex_open(mutex);
-	if(!lock) {
-		__lwp_thread_dispatchenable();
-		return -1;
-	}
+	if(!lock) return -1;
+
 	ret = __lwp_mutex_surrender(&lock->mutex);
 	__lwp_thread_dispatchenable();
 
