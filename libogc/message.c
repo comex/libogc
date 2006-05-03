@@ -1,6 +1,6 @@
 /*-------------------------------------------------------------
 
-$Id: message.c,v 1.10 2006/05/02 11:56:10 shagkur Exp $
+$Id: message.c,v 1.11 2006/05/03 11:03:34 shagkur Exp $
 
 message.c -- Thread subsystem II
 
@@ -28,6 +28,10 @@ must not be misrepresented as being the original software.
 distribution.
 
 $Log: message.c,v $
+Revision 1.11  2006/05/03 11:03:34  shagkur
+- function body of __lwpmq_submit()
+- changed function call according to lwp_messages changes
+
 Revision 1.10  2006/05/02 11:56:10  shagkur
 - changed object handling & thread protection
 
@@ -135,7 +139,7 @@ BOOL MQ_Send(mqbox_t mqbox,mqmsg_t msg,u32 flags)
 	if(!mbox) return FALSE;
 	
 	ret = FALSE;
-	if(__lwpmq_submit(&mbox->mqueue,msg,sizeof(mqmsg_t),mbox->object.id,LWP_MQ_SEND_REQUEST,wait,LWP_THREADQ_NOTIMEOUT)==LWP_MQ_STATUS_SUCCESSFUL) ret = TRUE;
+	if(__lwpmq_submit(&mbox->mqueue,mbox->object.id,msg,sizeof(mqmsg_t),LWP_MQ_SEND_REQUEST,wait,LWP_THREADQ_NOTIMEOUT)==LWP_MQ_STATUS_SUCCESSFUL) ret = TRUE;
 	__lwp_thread_dispatchenable();
 
 	return ret;
@@ -167,7 +171,7 @@ BOOL MQ_Jam(mqbox_t mqbox,mqmsg_t msg,u32 flags)
 	if(!mbox) return FALSE;
 
 	ret = FALSE;
-	if(__lwpmq_submit(&mbox->mqueue,msg,sizeof(mqmsg_t),mbox->object.id,LWP_MQ_SEND_URGENT,wait,LWP_THREADQ_NOTIMEOUT)==LWP_MQ_STATUS_SUCCESSFUL) ret = TRUE;
+	if(__lwpmq_submit(&mbox->mqueue,mbox->object.id,msg,sizeof(mqmsg_t),LWP_MQ_SEND_URGENT,wait,LWP_THREADQ_NOTIMEOUT)==LWP_MQ_STATUS_SUCCESSFUL) ret = TRUE;
 	__lwp_thread_dispatchenable();
 
 	return ret;
