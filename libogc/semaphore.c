@@ -1,6 +1,6 @@
 /*-------------------------------------------------------------
 
-$Id: semaphore.c,v 1.11 2006/05/02 11:56:10 shagkur Exp $
+$Id: semaphore.c,v 1.12 2006/05/06 18:07:25 shagkur Exp $
 
 semaphore.c -- Thread subsystem IV
 
@@ -28,6 +28,9 @@ must not be misrepresented as being the original software.
 distribution.
 
 $Log: semaphore.c,v $
+Revision 1.12  2006/05/06 18:07:25  shagkur
+- fixed bugs in gx.c
+
 Revision 1.11  2006/05/02 11:56:10  shagkur
 - changed object handling & thread protection
 
@@ -53,6 +56,15 @@ no message
 #include "lwp_config.h"
 #include "semaphore.h"
 
+#define LWP_OBJTYPE_SEM				3
+
+#define LWP_CHECK_SEM(hndl)		\
+{									\
+	if(((hndl)==LWP_SEM_NULL) || (LWP_OBJTYPE(hndl)!=LWP_OBJTYPE_SEM))	\
+		return NULL;				\
+}
+
+
 typedef struct _sema_st
 {
 	lwp_obj object;
@@ -68,7 +80,8 @@ void __lwp_sema_init()
 
 static __inline__ sema_st* __lwp_sema_open(sem_t sem)
 {
-	return (sema_st*)__lwp_objmgr_get(&_lwp_sema_objects,sem);
+	LWP_CHECK_SEM(sem);
+	return (sema_st*)__lwp_objmgr_get(&_lwp_sema_objects,LWP_OBJMASKID(sem));
 }
 
 static __inline__ void __lwp_sema_free(sema_st *sema)
@@ -105,7 +118,7 @@ s32 LWP_SemInit(sem_t *sem,u32 start,u32 max)
 	attr.mode = LWP_SEMA_MODEFIFO;
 	__lwp_sema_initialize(&ret->sema,&attr,start);
 
-	*sem = (sem_t)ret->object.id;
+	*sem = (sem_t)(LWP_OBJMASKTYPE(LWP_OBJTYPE_SEM)|LWP_OBJMASKID(ret->object.id));
 	__lwp_thread_dispatchenable();
 	return 0;
 }
