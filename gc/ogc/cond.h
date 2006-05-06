@@ -1,6 +1,6 @@
 /*-------------------------------------------------------------
 
-$Id: cond.h,v 1.6 2006/05/02 09:39:34 shagkur Exp $
+$Id: cond.h,v 1.7 2006/05/06 18:10:07 shagkur Exp $
 
 cond.h -- Thread subsystem V
 
@@ -28,6 +28,9 @@ must not be misrepresented as being the original software.
 distribution.
 
 $Log: cond.h,v $
+Revision 1.7  2006/05/06 18:10:07  shagkur
+no message
+
 Revision 1.6  2006/05/02 09:39:34  shagkur
 - changed handle typedef
 
@@ -51,6 +54,8 @@ no message
 
 #include <gctypes.h>
 #include <time.h>
+
+#define LWP_COND_NULL		0xffffffff
 
 #ifdef __cplusplus
 extern "C" {

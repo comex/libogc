@@ -1,6 +1,6 @@
 /*-------------------------------------------------------------
 
-$Id: lwp.h,v 1.13 2006/05/02 09:39:34 shagkur Exp $
+$Id: lwp.h,v 1.14 2006/05/06 18:10:07 shagkur Exp $
 
 lwp.h -- Thread subsystem I
 
@@ -28,6 +28,9 @@ must not be misrepresented as being the original software.
 distribution.
 
 $Log: lwp.h,v $
+Revision 1.14  2006/05/06 18:10:07  shagkur
+no message
+
 Revision 1.13  2006/05/02 09:39:34  shagkur
 - changed handle typedef
 
@@ -61,6 +64,9 @@ no message
 
 #define LWP_PRIO_IDLE				0
 #define LWP_PRIO_HIGHEST		  127
+
+#define LWP_THREAD_NULL				0xffffffff
+#define LWP_TQUEUE_NULL				0xffffffff
 
 #ifdef __cplusplus
 extern "C" {
