@@ -1,6 +1,6 @@
 /*-------------------------------------------------------------
 
-$Id: lwp.c,v 1.28 2006/05/06 18:07:25 shagkur Exp $
+$Id: lwp.c,v 1.29 2006/12/01 15:21:53 wntrmute Exp $
 
 lwp.c -- Thread subsystem I
 
@@ -28,6 +28,9 @@ must not be misrepresented as being the original software.
 distribution.
 
 $Log: lwp.c,v $
+Revision 1.29  2006/12/01 15:21:53  wntrmute
+sync with softdev 2006-10-03
+
 Revision 1.28  2006/05/06 18:07:25  shagkur
 - fixed bugs in gx.c
 
@@ -122,7 +125,6 @@ static lwp_cntrl* __lwp_cntrl_allocate()
 	__lwp_thread_dispatchdisable();
 	thethread = (lwp_cntrl*)__lwp_objmgr_allocate(&_lwp_thr_objects);
 	if(thethread) {
-		thethread->information = &_lwp_thr_objects;
 		__lwp_objmgr_open(&_lwp_thr_objects,&thethread->object);
 		return thethread;
 	}
@@ -146,7 +148,6 @@ static tqueue_st* __lwp_tqueue_allocate()
 
 static __inline__ void __lwp_cntrl_free(lwp_cntrl *thethread)
 {
-	thethread->information = NULL;
 	__lwp_objmgr_close(&_lwp_thr_objects,&thethread->object);
 	__lwp_objmgr_free(&_lwp_thr_objects,&thethread->object);
 }
@@ -170,7 +171,6 @@ void __lwp_sysinit()
 
 	// create idle thread, is needed iff all threads are locked on a queue
 	_thr_idle = (lwp_cntrl*)__lwp_objmgr_allocate(&_lwp_thr_objects);
-	_thr_idle->information = &_lwp_thr_objects;
 	__lwp_thread_init(_thr_idle,NULL,0,255,0,TRUE);
 	_thr_executing = _thr_heir = _thr_idle;
 	__lwp_thread_start(_thr_idle,idle_func,NULL);
@@ -179,7 +179,6 @@ void __lwp_sysinit()
 	// create main thread, as this is our entry point
 	// for every GC application.
 	_thr_main = (lwp_cntrl*)__lwp_objmgr_allocate(&_lwp_thr_objects);
-	_thr_main->information = &_lwp_thr_objects;
 	__lwp_thread_init(_thr_main,__stack_end,((u32)__stack_addr-(u32)__stack_end),191,0,TRUE);
 	_thr_executing = _thr_heir = _thr_main;
 	__lwp_thread_start(_thr_main,(void*)main,NULL);
@@ -188,11 +187,15 @@ void __lwp_sysinit()
 
 BOOL __lwp_thread_isalive(lwp_t thr_id)
 {
-	lwp_cntrl *thethread = (lwp_cntrl*)__lwp_objmgr_get_noprotection(&_lwp_thr_objects,thr_id);
+	if(thr_id==LWP_THREAD_NULL || LWP_OBJTYPE(thr_id)!=LWP_OBJTYPE_THREAD) return FALSE;
+
+	lwp_cntrl *thethread = (lwp_cntrl*)__lwp_objmgr_getnoprotection(&_lwp_thr_objects,LWP_OBJMASKID(thr_id));
 	
-	if(thethread && 
-		(!__lwp_statedormant(thethread->cur_state) && !__lwp_statetransient(thethread->cur_state)))
-		return TRUE;
+	if(thethread) {  
+		u32 *stackbase = thethread->stack;
+		if(stackbase[0]==0xDEADBABE && !__lwp_statedormant(thethread->cur_state) && !__lwp_statetransient(thethread->cur_state))
+			return TRUE;
+	}
 	
 	return FALSE;
 }
@@ -204,19 +207,20 @@ lwp_t __lwp_thread_currentid()
 
 BOOL __lwp_thread_exists(lwp_t thr_id)
 {
-	return (__lwp_objmgr_get_noprotection(&_lwp_thr_objects,thr_id)!=NULL);
+	if(thr_id==LWP_THREAD_NULL || LWP_OBJTYPE(thr_id)!=LWP_OBJTYPE_THREAD) return FALSE;
+	return (__lwp_objmgr_getnoprotection(&_lwp_thr_objects,LWP_OBJMASKID(thr_id))!=NULL);
 }
 
 frame_context* __lwp_thread_context(lwp_t thr_id)
 {
 	lwp_cntrl *thethread;
-	frame_context *ctx = NULL;
+	frame_context *pctx = NULL;
 
-	thethread = (lwp_cntrl*)__lwp_objmgr_get_noprotection(&_lwp_thr_objects,thr_id);
-	if(thethread)  {
-		ctx = &thethread->context;
-	}
-	return ctx;
+	LWP_CHECK_THREAD(thr_id);
+	thethread = (lwp_cntrl*)__lwp_objmgr_getnoprotection(&_lwp_thr_objects,LWP_OBJMASKID(thr_id));
+	if(thethread) pctx = &thethread->context;
+
+	return pctx;
 }
 
 s32 LWP_CreateThread(lwp_t *thethread,void* (*entry)(void *),void *arg,void *stackbase,u32 stack_size,u8 prio)
