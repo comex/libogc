@@ -1,6 +1,6 @@
 /*-------------------------------------------------------------
 
-$Id: system.c,v 1.59 2006/12/01 15:21:53 wntrmute Exp $
+$Id: system.c,v 1.60 2007/01/11 10:51:56 wntrmute Exp $
 
 system.c -- OS functions and initialization
 
@@ -28,8 +28,8 @@ must not be misrepresented as being the original software.
 distribution.
 
 $Log: system.c,v $
-Revision 1.59  2006/12/01 15:21:53  wntrmute
-sync with softdev 2006-10-03
+Revision 1.60  2007/01/11 10:51:56  wntrmute
+sychronise with Shagkur's tree
 
 Revision 1.58  2005/12/09 09:35:45  shagkur
 no message

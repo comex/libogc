@@ -1,6 +1,6 @@
 /*-------------------------------------------------------------
 
-$Id: cond.c,v 1.16 2006/12/01 15:21:53 wntrmute Exp $
+$Id: cond.c,v 1.17 2007/01/11 10:51:56 wntrmute Exp $
 
 cond.c -- Thread subsystem V
 
@@ -28,8 +28,8 @@ must not be misrepresented as being the original software.
 distribution.
 
 $Log: cond.c,v $
-Revision 1.16  2006/12/01 15:21:53  wntrmute
-sync with softdev 2006-10-03
+Revision 1.17  2007/01/11 10:51:56  wntrmute
+sychronise with Shagkur's tree
 
 Revision 1.15  2006/05/06 19:41:44  shagkur
 no message

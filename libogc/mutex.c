@@ -1,6 +1,6 @@
 /*-------------------------------------------------------------
 
-$Id: mutex.c,v 1.14 2006/12/01 15:21:53 wntrmute Exp $
+$Id: mutex.c,v 1.15 2007/01/11 10:51:56 wntrmute Exp $
 
 mutex.c -- Thread subsystem III
 
@@ -28,8 +28,8 @@ must not be misrepresented as being the original software.
 distribution.
 
 $Log: mutex.c,v $
-Revision 1.14  2006/12/01 15:21:53  wntrmute
-sync with softdev 2006-10-03
+Revision 1.15  2007/01/11 10:51:56  wntrmute
+sychronise with Shagkur's tree
 
 Revision 1.13  2006/05/06 18:07:25  shagkur
 - fixed bugs in gx.c

@@ -1,6 +1,6 @@
 /*-------------------------------------------------------------
 
-$Id: exi.c,v 1.32 2006/12/01 15:21:53 wntrmute Exp $
+$Id: exi.c,v 1.33 2007/01/11 10:51:56 wntrmute Exp $
 
 exi.c -- EXI subsystem
 
@@ -28,8 +28,8 @@ must not be misrepresented as being the original software.
 distribution.
 
 $Log: exi.c,v $
-Revision 1.32  2006/12/01 15:21:53  wntrmute
-sync with softdev 2006-10-03
+Revision 1.33  2007/01/11 10:51:56  wntrmute
+sychronise with Shagkur's tree
 
 Revision 1.31  2006/04/10 05:32:31  shagkur
 - changed calls to thread queue functions to meet the new prototypes.

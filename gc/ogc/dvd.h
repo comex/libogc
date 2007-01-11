@@ -1,6 +1,6 @@
 /*-------------------------------------------------------------
 
-$Id: dvd.h,v 1.26 2006/12/01 15:21:53 wntrmute Exp $
+$Id: dvd.h,v 1.27 2007/01/11 10:51:56 wntrmute Exp $
 
 dvd.h -- DVD subsystem
 
@@ -28,8 +28,8 @@ must not be misrepresented as being the original software.
 distribution.
 
 $Log: dvd.h,v $
-Revision 1.26  2006/12/01 15:21:53  wntrmute
-sync with softdev 2006-10-03
+Revision 1.27  2007/01/11 10:51:56  wntrmute
+sychronise with Shagkur's tree
 
 Revision 1.25  2006/01/18 18:21:44  shagkur
 - Added DVD_SetAutoInvalidation
