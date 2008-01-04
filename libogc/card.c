@@ -1,6 +1,6 @@
 /*-------------------------------------------------------------
 
-$Id: card.c,v 1.60 2007/01/11 10:51:56 wntrmute Exp $
+$Id: card.c,v 1.61 2008/01/04 22:13:12 wntrmute Exp $
 
 card.c -- Memory card subsystem
 
@@ -28,6 +28,9 @@ must not be misrepresented as being the original software.
 distribution.
 
 $Log: card.c,v $
+Revision 1.61  2008/01/04 22:13:12  wntrmute
+fix some gcc 4.x warnings
+
 Revision 1.60  2007/01/11 10:51:56  wntrmute
 sychronise with Shagkur's tree
 
@@ -521,7 +524,7 @@ static s32 __card_getfilenum(card_block *card,const char *filename,const char *g
 	entries = dirblock->entries;
 	for(i=0;i<CARD_MAXFILES;i++) {
 		if(entries[i].gamecode[0]!=0xff) {
-			if(strnicmp(entries[i].filename,filename,strlen(filename))==0) {
+			if(strnicmp((char*)entries[i].filename,filename,strlen(filename))==0) {
 				if((gamecode && gamecode[0]!=0xff && memcmp(entries[i].gamecode,gamecode,4)!=0)
 					|| (company && company[0]!=0xff && memcmp(entries[i].company,company,2)!=0)) continue;
 
@@ -2748,7 +2751,7 @@ s32 CARD_CreateEntryAsync(s32 chn,card_dir *direntry,card_file *file,cardcallbac
 #ifdef _CARD_DEBUG
 	printf("CARD_CreateEntryAsync(%d,%p,%p,%p)\n",chn,direntry,file,callback);
 #endif
-	len = strlen(direntry->filename);
+	len = strlen((char *)direntry->filename);
 	if(len>CARD_FILENAMELEN) return CARD_ERROR_NAMETOOLONG;
 	
 	if((ret=__card_getcntrlblock(chn,&card))<0) return ret;
@@ -2820,7 +2823,7 @@ s32 CARD_Open(s32 chn,const char *filename,card_file *file)
 	
 	file->filenum = -1;
 	if((ret=__card_getcntrlblock(chn,&card))<0) return ret;
-	if((ret=__card_getfilenum(card,filename,card_gamecode,card_company,&fileno))<0) {
+	if((ret=__card_getfilenum(card,filename,(char *)card_gamecode,(char *)card_company,&fileno))<0) {
 		__card_putcntrlblock(card,ret);
 		return ret;
 	}
@@ -2849,7 +2852,7 @@ s32 CARD_OpenEntry(s32 chn,card_dir *entry,card_file *file)
 	
 	file->filenum = -1;
 	if((ret=__card_getcntrlblock(chn,&card))<0) return ret;
-	if((ret=__card_getfilenum(card,entry->filename,entry->gamecode,entry->company,&fileno))<0) {
+	if((ret=__card_getfilenum(card,(char *)entry->filename,(char *)entry->gamecode,(char *)entry->company,&fileno))<0) {
 		__card_putcntrlblock(card,ret);
 		return ret;
 	}
@@ -2895,7 +2898,7 @@ s32 CARD_DeleteAsync(s32 chn,const char *filename,cardcallback callback)
 	printf("CARD_DeleteAsync(%d,%s,%p)\n",chn,filename,callback);
 #endif
 	if((ret=__card_getcntrlblock(chn,&card))<0) return ret;
-	if((ret=__card_getfilenum(card,filename,card_gamecode,card_company,&fileno))<0) {
+	if((ret=__card_getfilenum(card,filename,(char *)card_gamecode,(char *)card_company,&fileno))<0) {
 		__card_putcntrlblock(card,ret);
 		return ret;
 	}
