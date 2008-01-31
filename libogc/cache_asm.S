@@ -1,7 +1,5 @@
 /*-------------------------------------------------------------
 
-$Id: cache_asm.S,v 1.5 2005/11/21 12:15:46 shagkur Exp $
-
 cache_asm.S -- Cache interface
 
 Copyright (C) 2004
@@ -26,10 +24,6 @@ must not be misrepresented as being the original software.
 
 3.	This notice may not be removed or altered from any source
 distribution.
-
-$Log: cache_asm.S,v $
-Revision 1.5  2005/11/21 12:15:46  shagkur
-no message
 
 
 -------------------------------------------------------------*/

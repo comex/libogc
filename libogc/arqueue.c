@@ -1,7 +1,5 @@
 /*-------------------------------------------------------------
 
-$Id: arqueue.c,v 1.6 2006/04/10 05:26:45 shagkur Exp $
-
 arqueue.c -- ARAM task request queue implementation
 
 Copyright (C) 2004
@@ -26,18 +24,6 @@ must not be misrepresented as being the original software.
 
 3.	This notice may not be removed or altered from any source
 distribution.
-
-$Log: arqueue.c,v $
-Revision 1.6  2006/04/10 05:26:45  shagkur
-- slight changes in the DMA routines (note: this file isn't finished at all)
-
-Revision 1.5  2005/11/21 12:42:30  shagkur
-- Added copyright header(taken from libnds).
-- Introduced RCS $Id: arqueue.c,v 1.6 2006/04/10 05:26:45 shagkur Exp $ and $Log: arqueue.c,v $
-- Introduced RCS $Id$ and Revision 1.6  2006/04/10 05:26:45  shagkur
-- Introduced RCS $Id$ and - slight changes in the DMA routines (note: this file isn't finished at all)
-- Introduced RCS $Id$ and token in project files.
-
 
 -------------------------------------------------------------*/
 
