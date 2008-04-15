@@ -62,6 +62,7 @@ typedef struct _tqueue_st {
 lwp_objinfo _lwp_thr_objects;
 lwp_objinfo _lwp_tqueue_objects;
 
+extern int __crtmain();
 extern int __main();
 
 extern u8 __stack_addr[],__stack_end[];
