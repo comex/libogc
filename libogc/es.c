@@ -489,6 +489,13 @@ s32 ES_Identify(const signed_blob *certificates, u32 certificates_size, const si
 
 	iosFree(__es_hid, keyid_buf);
 	iosFree(__es_hid, hashes);
+	
+	if(ret >= 0) {
+		__ES_Close();
+		__ES_Init();
+	}
+
+	
 	return ret;
 }
 
