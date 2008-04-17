@@ -1,7 +1,8 @@
 build
-
 deps
-
 lib
-
 include
+cube
+wii
+*~
+gc/ogc/libversion.h
