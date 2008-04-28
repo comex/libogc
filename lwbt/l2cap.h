@@ -279,10 +279,15 @@ extern struct l2cap_pcb *l2cap_active_pcbs; /* List of all L2CAP PCBs that has
 extern struct l2cap_pcb *l2cap_tmp_pcb;      /* Only used for temporary storage. */
 
 #define L2CAP_REG(pcbs, npcb) do { \
+							u32 level; \
+							_CPU_ISR_Disable(level); \
                             npcb->next = *pcbs; \
                             *pcbs = npcb; \
+							_CPU_ISR_Restore(level); \
                             } while(0)
 #define L2CAP_RMV(pcbs, npcb) do { \
+							u32 level; \
+							_CPU_ISR_Disable(level); \
                             if(*pcbs == npcb) { \
                                *pcbs = (*pcbs)->next; \
                             } else for(l2cap_tmp_pcb = *pcbs; l2cap_tmp_pcb != NULL; l2cap_tmp_pcb = l2cap_tmp_pcb->next) { \
@@ -292,16 +297,22 @@ extern struct l2cap_pcb *l2cap_tmp_pcb;      /* Only used for temporary storage.
                                } \
                             } \
                             npcb->next = NULL; \
+							_CPU_ISR_Restore(level); \
                             } while(0)
 
 /* The L2CAP SIG list macros */
 extern struct l2cap_sig *l2cap_tmp_sig;      /* Only used for temporary storage. */
 
 #define L2CAP_SIG_REG(ursp_sigs, nsig) do { \
+							u32 level; \
+							_CPU_ISR_Disable(level); \
                             nsig->next = *ursp_sigs; \
                             *ursp_sigs = nsig; \
+							_CPU_ISR_Restore(level); \
                             } while(0)
 #define L2CAP_SIG_RMV(ursp_sigs, nsig) do { \
+							u32 level; \
+							_CPU_ISR_Disable(level); \
                             if(*ursp_sigs == nsig) { \
                                *ursp_sigs = (*ursp_sigs)->next; \
                             } else for(l2cap_tmp_sig = *ursp_sigs; l2cap_tmp_sig != NULL; l2cap_tmp_sig = l2cap_tmp_sig->next) { \
@@ -311,16 +322,22 @@ extern struct l2cap_sig *l2cap_tmp_sig;      /* Only used for temporary storage.
                                } \
                             } \
                             nsig->next = NULL; \
+							_CPU_ISR_Restore(level); \
                             } while(0)
 
 /* The L2CAP incoming segments list macros */
 extern struct l2cap_seg *l2cap_tmp_inseg;      /* Only used for temporary storage. */
 
 #define L2CAP_SEG_REG(segs, nseg) do { \
+							u32 level; \
+							_CPU_ISR_Disable(level); \
                             nseg->next = *segs; \
                             *segs = nseg; \
+							_CPU_ISR_Restore(level); \
                             } while(0)
 #define L2CAP_SEG_RMV(segs, nseg) do { \
+							u32 level; \
+							_CPU_ISR_Disable(level); \
                             if(*segs == nseg) { \
                                *segs = (*segs)->next; \
                             } else for(l2cap_tmp_inseg = *segs; l2cap_tmp_inseg != NULL; l2cap_tmp_inseg = l2cap_tmp_inseg->next) { \
@@ -330,6 +347,7 @@ extern struct l2cap_seg *l2cap_tmp_inseg;      /* Only used for temporary storag
                                } \
                             } \
                             nseg->next = NULL; \
+							_CPU_ISR_Restore(level); \
                             } while(0)
 
 #endif
