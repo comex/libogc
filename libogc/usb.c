@@ -59,7 +59,9 @@ static __inline__ s32 __usb_control_message(s32 fd,u8 bmRequestType,u8 bmRequest
 {
 	s32 ret = USB_FAILED;
 
-	if(rpData==NULL || ((s32)rpData%32)!=0) return IPC_EINVAL;
+	if(((s32)rpData%32)!=0) return IPC_EINVAL;
+	if(wLength && !rpData) return IPC_EINVAL;
+	if(!wLength && rpData) return IPC_EINVAL;
 
 	if(cb==NULL)
 		ret = IOS_IoctlvFormat(hId,fd,USB_IOCTL_CTRLMSG,"bbhhhb:d",bmRequestType,bmRequest,bswap16(wValue),bswap16(wIndex),bswap16(wLength),0,rpData,wLength);
