@@ -273,6 +273,7 @@ s32 USB_GetDeviceList(const char *devpath,void *descr_buffer,u8 num_descr,u8 b0,
 	if(ret>=0) *cnt_descr = cntdevs;
 	
 	iosFree(hId,path);
+	IOS_Close(fd);
 	return ret;
 }
 #endif /* defined(HW_RVL) */
