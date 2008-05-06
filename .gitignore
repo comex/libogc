@@ -6,3 +6,5 @@ cube
 wii
 *~
 gc/ogc/libversion.h
+*.tar.gz
+00*
