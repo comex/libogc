@@ -530,10 +530,6 @@ s32 ES_DeleteTicket(const tikview *view)
 	return ret;
 }
 
-<<<<<<< HEAD:libogc/es.c
-
-=======
->>>>>>> origin:libogc/es.c
 s32 ES_AddTitleTMD(const signed_blob *stmd, u32 stmd_size)
 {
 	s32 ret;
