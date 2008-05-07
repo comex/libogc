@@ -1,6 +1,6 @@
 /*-------------------------------------------------------------
 
-es.c -- ETicket services
+conf.c -- SYSCONF support
 
 Copyright (C) 2008
 Hector Martin (marcan)

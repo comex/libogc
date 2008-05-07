@@ -1,6 +1,6 @@
 /*-------------------------------------------------------------
 
-es.h -- tik services
+conf.h -- SYSCONF support
 
 Copyright (C) 2008
 Hector Martin (marcan)
