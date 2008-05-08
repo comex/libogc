@@ -38,7 +38,7 @@ distribution.
 
 
 static int __conf_inited = 0;
-static u8 __conf_buffer[0x4000];
+static u8 __conf_buffer[0x4000] __attribute__((aligned(0x20)));
 
 static const char __conf_file[] __attribute__((aligned(0x20)))= "/shared2/sys/SYSCONF";
 
