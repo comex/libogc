@@ -88,6 +88,12 @@ struct inquiry_info_ex
 	u16 co;
 };
 
+struct linkkey_info
+{
+	struct bd_addr bdaddr;
+	u8 key[16];
+};
+
 struct bte_pcb
 {
 	u8 err;
@@ -108,7 +114,15 @@ struct bte_pcb
 	s32 (*disconn_cfm)(void *arg,struct bte_pcb *pcb,u8 err);
 };
 
-void bte_init();
+typedef s32 (*btecallback)(s32 result,void *userdata);
+
+void BTE_Init();
+s32 BTE_InitCore(btecallback cb);
+s32 BTE_ApplyPatch(btecallback cb);
+s32 BTE_InitSub(btecallback cb);
+s32 BTE_ReadStoredLinkKey(struct linkkey_info *keys,u8 max_cnt,btecallback cb);
+
+
 void bte_start();
 struct bte_pcb* bte_new();
 void bte_arg(struct bte_pcb *pcb,void *arg);

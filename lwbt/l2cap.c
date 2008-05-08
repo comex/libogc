@@ -296,8 +296,8 @@ void l2cap_process_sig(struct pbuf *q, struct l2cap_hdr *l2caphdr, struct bd_add
 				psm = le16toh(((u16_t *)p->payload)[0]);
 				/* Search for a listening pcb */
 				for(lpcb = l2cap_listen_pcbs; lpcb != NULL; lpcb = lpcb->next) {
-					if(lpcb->psm == psm) {
-						/* Found a listening pcb with the correct PSM */
+					if(bd_addr_cmp(&(lpcb->bdaddr),bdaddr) && lpcb->psm == psm) {
+						/* Found a listening pcb with the correct PSM & BD Address */
 						break;
 					}
 				}
@@ -1467,7 +1467,7 @@ void l2cap_arg(struct l2cap_pcb *pcb, void *arg)
  * connection request.
  */
 /*-----------------------------------------------------------------------------------*/
-err_t l2cap_connect_ind(struct l2cap_pcb *npcb, u8_t psm,err_t (* l2ca_connect_ind)(void *arg, struct l2cap_pcb *pcb, err_t err))
+err_t l2cap_connect_ind(struct l2cap_pcb *npcb, struct bd_addr *bdaddr, u16_t psm,err_t (* l2ca_connect_ind)(void *arg, struct l2cap_pcb *pcb, err_t err))
 {
 	struct l2cap_pcb_listen *lpcb;
 
@@ -1476,6 +1476,8 @@ err_t l2cap_connect_ind(struct l2cap_pcb *npcb, u8_t psm,err_t (* l2ca_connect_i
 		ERROR("l2cap_connect_ind: Could not allocate memory for lpcb\n");
 		return ERR_MEM;
 	}
+
+	bd_addr_set(&(lpcb->bdaddr),bdaddr);
 	lpcb->psm = psm;
 	lpcb->l2ca_connect_ind = l2ca_connect_ind;
 	lpcb->state = L2CAP_LISTEN;

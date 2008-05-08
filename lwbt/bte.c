@@ -52,6 +52,9 @@ struct bt_state
 	u8_t num_maxdevs;
 	u8_t num_founddevs;
 	struct inquiry_info_ex *info;
+
+	btecallback cb;
+	void *usrdata;
 };
 
 struct ctrl_req_t
@@ -106,11 +109,24 @@ err_t bte_hci_patch_complete(void *arg,struct hci_pcb *pcb,u8_t ogf,u8_t ocf,u8_
 err_t bte_hci_initcore_complete(void *arg,struct hci_pcb *pcb,u8_t ogf,u8_t ocf,u8_t result);
 err_t bte_hci_initsub_complete(void *arg,struct hci_pcb *pcb,u8_t ogf,u8_t ocf,u8_t result);
 err_t bte_inquiry_complete(void *arg,struct hci_pcb *pcb,struct hci_inq_res *ires,u16_t result);
+err_t bte_read_stored_link_key_complete(void *arg,struct hci_pcb *pcb,u8_t ogf,u8_t ocf,u8_t result);
 
 MEMB(bte_pcbs,sizeof(struct bte_pcb),MEMP_NUM_BTE_PCB);
-MEMB(bte_msgs,sizeof(struct bte_msg),MEMP_NUM_BTE_MSG);
 MEMB(bte_ctrl_reqs,sizeof(struct ctrl_req_t),MEMP_NUM_BTE_CTRLS);
 
+static void bte_reset_all()
+{
+	btmemb_init(&bte_pcbs);
+	btmemb_init(&bte_ctrl_reqs);
+
+	if(btstate.info!=NULL) free(btstate.info);
+
+	btstate.info = NULL;
+	btstate.hci_inited = 0;
+	btstate.hci_cmddone = 0;
+	btstate.num_founddevs = 0;
+	btstate.last_err = ERR_OK;
+}
 
 static void bt_alarmhandler(syswd_t alarm)
 {
@@ -119,36 +135,38 @@ static void bt_alarmhandler(syswd_t alarm)
 	__lwp_thread_dispatchunnest();
 }
 
-static inline s32 __bte_waitcmdfinish()
+static inline s32 __bte_waitcmdfinish(struct bt_state *state)
 {
 	u32 level;
 	s32 ret;
 
+	if(!state) return ERR_VAL;
+
 	_CPU_ISR_Disable(level);
-	while(!btstate.hci_cmddone)
-		LWP_ThreadSleep(btstate.hci_cmdq);
-	ret = btstate.last_err;
+	while(!state->hci_cmddone)
+		LWP_ThreadSleep(state->hci_cmdq);
+	ret = state->last_err;
 	_CPU_ISR_Restore(level);
 
 	return ret;
 }
 
-static inline void __bte_cmdfinish(err_t err)
+static inline s32 __bte_cmdfinish(struct bt_state *state,err_t err)
 {
 	u32 level;
 
-	_CPU_ISR_Disable(level);
-	btstate.last_err = err;
-	btstate.hci_cmddone = 1;
-	LWP_ThreadSignal(btstate.hci_cmdq);
-	_CPU_ISR_Restore(level);
-}
+	if(!state) return ERR_VAL;
 
-static inline void __bte_freerequest(struct ctrl_req_t *req)
-{
-	if(!req) return ;
-	if(req->p) btpbuf_free(req->p);
-	btmemb_free(&bte_ctrl_reqs,req);
+	_CPU_ISR_Disable(level);
+	state->last_err = err;
+	state->hci_cmddone = 1;
+	if(state->cb!=NULL)
+		state->cb(err,state->usrdata);
+	else
+		LWP_ThreadSignal(state->hci_cmdq);
+	_CPU_ISR_Restore(level);
+
+	return err;
 }
 
 static inline s32 __bte_waitrequest(struct ctrl_req_t *req)
@@ -282,67 +300,6 @@ static void bte_process_data(struct bte_pcb *pcb,u8_t param,void *buf,u16_t len)
 	}
 }
 
-static void bte_reset_all()
-{
-	btmemb_init(&bte_pcbs);
-	btmemb_init(&bte_msgs);
-	btmemb_init(&bte_ctrl_reqs);
-
-	if(btstate.info!=NULL) free(btstate.info);
-
-	btstate.info = NULL;
-	btstate.hci_inited = 0;
-	btstate.hci_cmddone = 0;
-	btstate.num_founddevs = 0;
-	btstate.last_err = ERR_OK;
-}
-
-static s32 bte_hci_initcore()
-{
-	s32 err;
-	u32 level;
-
-	_CPU_ISR_Disable(level);
-	btstate.hci_cmddone = 0;
-	hci_cmd_complete(bte_hci_initcore_complete);
-	hci_reset();
-	err = __bte_waitcmdfinish();
-	_CPU_ISR_Restore(level);
-
-	return err;
-}
-
-static s32 bte_hci_initsub()
-{
-	s32 err;
-	u32 level;
-
-	_CPU_ISR_Disable(level);
-	btstate.hci_cmddone = 0;
-	hci_cmd_complete(bte_hci_initsub_complete);
-	hci_write_inquiry_mode(0x01);
-	err = __bte_waitcmdfinish();
-	_CPU_ISR_Restore(level);
-
-	return err;
-}
-
-static s32 bte_hci_apply_patch()
-{
-	s32 err;
-	u32 level;
-	u8 kick = 0;
-
-	_CPU_ISR_Disable(level);
-	btstate.hci_cmddone = 0;
-	hci_cmd_complete(bte_hci_apply_patch_complete);
-	hci_vendor_specific_command(HCI_VENDOR_PATCH_START_OCF,HCI_VENDOR_OGF,&kick,1);
-	err = __bte_waitcmdfinish();
-	_CPU_ISR_Restore(level);
-
-	return err;
-}
-
 static err_t bte_process_input(void *arg,struct l2cap_pcb *pcb,struct pbuf *p,err_t err)
 {
 	u8 *buf;
@@ -374,9 +331,12 @@ static err_t bte_process_input(void *arg,struct l2cap_pcb *pcb,struct pbuf *p,er
 	return ERR_OK;
 }
 
-void bte_init()
+void BTE_Init()
 {
-	//printf("bte_init()\n");
+	u32 level;
+	struct timespec tb;
+
+	LOG("BTE_Init()\n");
 
 	memset(&btstate,0,sizeof(struct bt_state));
 
@@ -386,8 +346,89 @@ void bte_init()
 
 	LWP_InitQueue(&btstate.hci_cmdq);
 	SYS_CreateAlarm(&btstate.timer_svc);
+
+	_CPU_ISR_Disable(level);
+	bte_reset_all();
+	hci_reset_all();
+	l2cap_reset_all();
+	physbusif_reset_all();
+
+	hci_wlp_complete(acl_wlp_completed);
+	hci_connection_complete(acl_conn_complete);
+	_CPU_ISR_Restore(level);
+
+	tb.tv_sec = 1;
+	tb.tv_nsec = 0;
+	SYS_SetPeriodicAlarm(btstate.timer_svc,&tb,&tb,bt_alarmhandler);
 }
 
+s32 BTE_InitCore(btecallback cb)
+{
+	u32 level;
+
+	_CPU_ISR_Disable(level);
+	btstate.cb = cb;
+	btstate.usrdata = NULL;
+	btstate.hci_cmddone = 0;
+	hci_arg(&btstate);
+	hci_cmd_complete(bte_hci_initcore_complete);
+	hci_reset();
+	_CPU_ISR_Restore(level);
+
+	return ERR_OK;
+}
+
+s32 BTE_ApplyPatch(btecallback cb)
+{
+	u32 level;
+	u8 kick = 0;
+
+	_CPU_ISR_Disable(level);
+	btstate.cb = cb;
+	btstate.usrdata = NULL;
+	btstate.hci_cmddone = 0;
+	hci_arg(&btstate);
+	hci_cmd_complete(bte_hci_apply_patch_complete);
+	hci_vendor_specific_command(HCI_VENDOR_PATCH_START_OCF,HCI_VENDOR_OGF,&kick,1);
+	_CPU_ISR_Restore(level);
+
+	return ERR_OK;
+}
+
+s32 BTE_InitSub(btecallback cb)
+{
+	u32 level;
+
+	_CPU_ISR_Disable(level);
+	btstate.cb = cb;
+	btstate.usrdata = NULL;
+	btstate.hci_cmddone = 0;
+	hci_arg(&btstate);
+	hci_cmd_complete(bte_hci_initsub_complete);
+	hci_write_inquiry_mode(0x01);
+	_CPU_ISR_Restore(level);
+
+	return ERR_OK;
+}
+
+s32 BTE_ReadStoredLinkKey(struct linkkey_info *keys,u8 max_cnt,btecallback cb)
+{
+	u32 level;
+
+	_CPU_ISR_Disable(level);
+	btstate.cb = cb;
+	btstate.usrdata = keys;
+	btstate.num_maxdevs = max_cnt;
+	btstate.hci_cmddone = 0;
+	hci_arg(&btstate);
+	hci_cmd_complete(bte_read_stored_link_key_complete);
+	hci_read_stored_link_key();
+	_CPU_ISR_Restore(level);
+
+	return ERR_OK;
+}
+
+/*
 void bte_start()
 {
 	u32 level;
@@ -411,10 +452,8 @@ void bte_start()
 	bte_hci_apply_patch();
 	bte_hci_initsub();
 
-	tb.tv_sec = 1;
-	tb.tv_nsec = 0;
-	SYS_SetPeriodicAlarm(btstate.timer_svc,&tb,&tb,bt_alarmhandler);
 }
+*/
 
 struct bte_pcb* bte_new()
 {
@@ -451,7 +490,7 @@ s32 bte_registerdeviceasync(struct bte_pcb *pcb,struct bd_addr *bdaddr,s32 (conn
 	}
 	l2cap_arg(l2capcb,pcb);
 
-	err = l2cap_connect_ind(l2capcb,HIDP_OUTPUT_CHANNEL,l2cap_accepted);
+	err = l2cap_connect_ind(l2capcb,bdaddr,HIDP_OUTPUT_CHANNEL,l2cap_accepted);
 	if(err!=ERR_OK) {
 		l2cap_close(l2capcb);
 		err = ERR_CONN;
@@ -464,7 +503,7 @@ s32 bte_registerdeviceasync(struct bte_pcb *pcb,struct bd_addr *bdaddr,s32 (conn
 	}
 	l2cap_arg(l2capcb,pcb);
 
-	err = l2cap_connect_ind(l2capcb,HIDP_INPUT_CHANNEL,l2cap_accepted);
+	err = l2cap_connect_ind(l2capcb,bdaddr,HIDP_INPUT_CHANNEL,l2cap_accepted);
 	if(err!=ERR_OK) {
 		l2cap_close(l2capcb);
 		err = ERR_CONN;
@@ -507,7 +546,7 @@ s32 bte_inquiry(struct inquiry_info *info,u8 max_cnt,u8 flush)
 		btstate.hci_cmddone = 0;
 		btstate.num_maxdevs = max_cnt;
 		hci_inquiry(0x009E8B33,0x03,max_cnt,bte_inquiry_complete);
-		last_err = __bte_waitcmdfinish();
+		last_err = __bte_waitcmdfinish(&btstate);
 	}
 	fnd = btstate.num_founddevs;
 	pinfo = btstate.info;
@@ -536,7 +575,7 @@ s32 bte_inquiry_ex(struct inquiry_info_ex *info,u8 max_cnt,u8 flush)
 		btstate.hci_cmddone = 0;
 		btstate.num_maxdevs = max_cnt;
 		hci_inquiry(0x009E8B33,0x03,max_cnt,bte_inquiry_complete);
-		last_err = __bte_waitcmdfinish();
+		last_err = __bte_waitcmdfinish(&btstate);
 	}
 	fnd = btstate.num_founddevs;
 	pinfo = btstate.info;
@@ -553,6 +592,7 @@ s32 bte_inquiry_ex(struct inquiry_info_ex *info,u8 max_cnt,u8 flush)
 	}
 	return (s32)((last_err==ERR_OK) ? fnd : last_err);
 }
+
 /*
 s32 bte_connect(struct bte_pcb *pcb,struct bd_addr *bdaddr,u8 psm,s32 (*recv)(void *arg,void *buffer,u16 len))
 {
@@ -748,9 +788,11 @@ err_t l2cap_disconnected_ind(void *arg, struct l2cap_pcb *pcb, err_t err)
 	bte->state = (u32)STATE_DISCONNECTING;
 	switch(l2cap_psm(pcb)) {
 		case HIDP_OUTPUT_CHANNEL:
+			l2cap_close(bte->out_pcb);
 			bte->out_pcb = NULL;
 			break;
 		case HIDP_INPUT_CHANNEL:
+			l2cap_close(bte->in_pcb);
 			bte->in_pcb = NULL;
 			break;
 	}
@@ -822,6 +864,7 @@ err_t bte_inquiry_complete(void *arg,struct hci_pcb *pcb,struct hci_inq_res *ire
 {
 	u8_t i;
 	struct hci_inq_res *p;
+	struct bt_state *state = (struct bt_state*)arg;
 
 	if(result==HCI_SUCCESS) {
 		if(ires!=NULL) {
@@ -853,18 +896,50 @@ err_t bte_inquiry_complete(void *arg,struct hci_pcb *pcb,struct hci_inq_res *ire
 				printf("co:   %04x\n",p->co);
 				p = p->next;
 			}
-			__bte_cmdfinish(ERR_OK);
+			__bte_cmdfinish(state,ERR_OK);
 		} else
 			hci_inquiry(0x009E8B33,0x03,btstate.num_maxdevs,bte_inquiry_complete);
 	}
 	return ERR_OK;
 }
 
+err_t bte_read_stored_link_key_complete(void *arg,struct hci_pcb *pcb,u8_t ogf,u8_t ocf,u8_t result)
+{
+	u8_t i = 0;
+	struct hci_link_key *p;
+	struct linkkey_info *keys;
+	struct bt_state *state = (struct bt_state*)arg;
+	
+	if(!pcb) return ERR_CONN;
+
+	LOG("bte_read_stored_link_key_complete(%02x,%p)\n",result,pcb->keyres);
+	
+	if(state==NULL) return ERR_VAL;
+	if(!(ogf==HCI_HC_BB_OGF && ocf==HCI_R_STORED_LINK_KEY_OCF)) return __bte_cmdfinish(state,ERR_CONN);
+
+	if(result==HCI_SUCCESS) {
+		keys = (struct linkkey_info*)state->usrdata;
+		if(pcb->keyres!=NULL && keys!=NULL) {
+			for(i=0,p=pcb->keyres;i<state->num_maxdevs && p!=NULL;i++) {
+				bd_addr_set(&(keys[i].bdaddr),&(p->bdaddr));
+				memcpy(keys[i].key,p->key,16);
+
+				p = p->next;
+			}
+		}
+		LOG("bte_read_stored_link_key_complete(%02x,%p,%d)\n",result,pcb->keyres,i);
+		__bte_cmdfinish(state,i);
+		return ERR_OK;
+	}
+
+	return __bte_cmdfinish(state,ERR_VAL);
+}
 /* new init with patching */
 err_t bte_hci_initcore_complete2(void *arg,struct hci_pcb *pcb,u8_t ogf,u8_t ocf,u8_t result)
 {
 	err_t err = ERR_OK;
 	u8_t dev_cod[] = {0x04, 0x02,0x40};
+	struct bt_state *state = (struct bt_state*)arg;
 
 	LOG("bte_hci_initcore_complete2(%02x,%02x)\n",ogf,ocf);
 	switch(ogf) {
@@ -891,13 +966,8 @@ err_t bte_hci_initcore_complete2(void *arg,struct hci_pcb *pcb,u8_t ogf,u8_t ocf
 					err = ERR_CONN;
 			} else if(ocf==HCI_WRITE_PAGE_TIMEOUT) {
 				if(result==HCI_SUCCESS) {
-					hci_read_stored_link_key();
-				} else
-					err = ERR_CONN;
-			} else if(ocf==HCI_R_STORED_LINK_KEY) {
-				if(result==HCI_SUCCESS) {
 					hci_cmd_complete(NULL);
-					__bte_cmdfinish(ERR_OK);
+					return __bte_cmdfinish(state,ERR_OK);
 				} else
 					err = ERR_CONN;
 			}
@@ -908,7 +978,7 @@ err_t bte_hci_initcore_complete2(void *arg,struct hci_pcb *pcb,u8_t ogf,u8_t ocf
 			break;
 	}
 
-	if(err!=ERR_OK) __bte_cmdfinish(err);
+	if(err!=ERR_OK) __bte_cmdfinish(state,err);
 	return err;
 }
 
@@ -916,6 +986,7 @@ err_t bte_hci_initcore_complete(void *arg,struct hci_pcb *pcb,u8_t ogf,u8_t ocf,
 {
 	err_t err = ERR_OK;
 	u8_t dev_cod[] = {0x00, 0x1f,0x00};
+	struct bt_state *state = (struct bt_state*)arg;
 
 	LOG("bte_hci_initcore_complete(%02x,%02x)\n",ogf,ocf);
 	switch(ogf) {
@@ -977,13 +1048,14 @@ err_t bte_hci_initcore_complete(void *arg,struct hci_pcb *pcb,u8_t ogf,u8_t ocf,
 			break;
 	}
 
-	if(err!=ERR_OK) __bte_cmdfinish(err);
+	if(err!=ERR_OK) __bte_cmdfinish(state,err);
 	return err;
 }
 
 err_t bte_hci_apply_patch_complete(void *arg,struct hci_pcb *pcb,u8_t ogf,u8_t ocf,u8_t result)
 {
 	err_t err = ERR_OK;
+	struct bt_state *state = (struct bt_state*)arg;
 
 	LOG("bte_hci_apply_patch_complete(%02x,%02x,%02x)\n",ogf,ocf,result);
 	switch(ogf) {
@@ -1007,7 +1079,7 @@ err_t bte_hci_apply_patch_complete(void *arg,struct hci_pcb *pcb,u8_t ogf,u8_t o
 			break;
 	}
 
-	if(err!=ERR_OK) __bte_cmdfinish(err);
+	if(err!=ERR_OK) __bte_cmdfinish(state,err);
 	return err;
 }
 
@@ -1015,8 +1087,9 @@ err_t bte_hci_patch_complete(void *arg,struct hci_pcb *pcb,u8_t ogf,u8_t ocf,u8_
 {
 	err_t err = ERR_OK;
 	u8_t dev_cod[] = {0x04, 0x02,0x40};
+	struct bt_state *state = (struct bt_state*)arg;
 
-	LOG("bte_hci_patch_complete(%02x,%02x)\n",ogf,ocf);
+	LOG("bte_hci_patch_complete(%02x,%02x,%02x)\n",ogf,ocf,result);
 	switch(ogf) {
 		case HCI_INFO_PARAM:
 			if(ocf==HCI_READ_BUFFER_SIZE) {
@@ -1037,7 +1110,7 @@ err_t bte_hci_patch_complete(void *arg,struct hci_pcb *pcb,u8_t ogf,u8_t ocf,u8_
 			} else if(ocf==HCI_READ_LOCAL_FEATURES) {
 				if(result==HCI_SUCCESS) {
 					hci_cmd_complete(NULL);
-					__bte_cmdfinish(ERR_OK);
+					return __bte_cmdfinish(state,ERR_OK);
 				} else
 					err = ERR_CONN;
 			}
@@ -1084,7 +1157,7 @@ err_t bte_hci_patch_complete(void *arg,struct hci_pcb *pcb,u8_t ogf,u8_t ocf,u8_
 			break;
 	}
 
-	if(err!=ERR_OK) __bte_cmdfinish(err);
+	if(err!=ERR_OK) __bte_cmdfinish(state,err);
 	return err;
 }
 
@@ -1092,6 +1165,7 @@ err_t bte_hci_initsub_complete(void *arg,struct hci_pcb *pcb,u8_t ogf,u8_t ocf,u
 {
 	err_t err = ERR_OK;
 	u8_t dev_cod[] = {0x00, 0x04,0x48};
+	struct bt_state *state = (struct bt_state*)arg;
 
 	LOG("bte_hci_initsub_complete(%02x,%02x)\n",ogf,ocf);
 	switch(ogf) {
@@ -1128,9 +1202,8 @@ err_t bte_hci_initsub_complete(void *arg,struct hci_pcb *pcb,u8_t ogf,u8_t ocf,u
 					err = ERR_CONN;
 			} else if(ocf==HCI_WRITE_SCAN_ENABLE) {
 				if(result==HCI_SUCCESS) {
-					btstate.hci_inited = 1;
 					hci_cmd_complete(NULL);
-					__bte_cmdfinish(ERR_OK);
+					return __bte_cmdfinish(state,ERR_OK);
 				} else
 					err = ERR_CONN;
 			}
@@ -1142,6 +1215,7 @@ err_t bte_hci_initsub_complete(void *arg,struct hci_pcb *pcb,u8_t ogf,u8_t ocf,u
 
 	}
 
-	if(err!=ERR_OK) __bte_cmdfinish(err);
+	if(err!=ERR_OK) __bte_cmdfinish(state,err);
 	return err;
 }
+

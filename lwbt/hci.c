@@ -57,6 +57,7 @@
 struct hci_pcb *hci_dev = NULL;
 struct hci_link *hci_active_links = NULL;
 struct hci_link *hci_tmp_link = NULL;
+struct hci_link_key *hci_tmp_key = NULL;
 
 MEMB(hci_pcbs,sizeof(struct hci_pcb),MEMB_NUM_HCI_PCB);
 MEMB(hci_links,sizeof(struct hci_link),MEMB_NUM_HCI_LINK);
@@ -136,6 +137,7 @@ void hci_reset_all(void)
 {
 	struct hci_link *link,*tlink;
 	struct hci_inq_res *ires,*tires;
+	struct hci_link_key *ikeys,*tikeys;
 	
 	for(link=hci_active_links;link!=NULL;) {
 		tlink = link->next;
@@ -148,6 +150,12 @@ void hci_reset_all(void)
 		tires = ires->next;
 		btmemb_free(&hci_inq_results,ires);
 		ires = tires;
+	}
+
+	for(ikeys=hci_dev->keyres;ikeys!=NULL;) {
+		tikeys = ikeys->next;
+		btmemb_free(&hci_inq_results,ikeys);
+		ikeys = tikeys;
 	}
 	btmemb_free(&hci_pcbs,hci_dev);
 
@@ -339,6 +347,15 @@ err_t hci_read_local_features(void)
 err_t hci_read_stored_link_key()
 {
 	struct pbuf *p = NULL;
+	struct hci_link_key *tmpres;
+
+	/* Free any previous link key result list */
+	while(hci_dev->keyres != NULL) {
+		tmpres = hci_dev->keyres;
+		hci_dev->keyres = hci_dev->keyres->next;
+		btmemb_free(&hci_link_key_results,tmpres);
+	}
+	
 
 	if((p=btpbuf_alloc(PBUF_RAW,HCI_R_STORED_LINK_KEY_PLEN,PBUF_RAM))==NULL) {
 		ERROR("hci_read_stored_link_keys: Could not allocate memory for pbuf\n");
@@ -1493,6 +1510,7 @@ static void hci_return_link_key_evt(struct pbuf *p)
 			memcpy(keyres->key,((u8_t*)p->payload)+7+resp_off,16);
 			keyres->next = NULL;
 
+			//printf("link key evt: %02x:%02x:%02x:%02x:%02x:%02x\n",bdaddr->addr[0],bdaddr->addr[1],bdaddr->addr[2],bdaddr->addr[3],bdaddr->addr[4],bdaddr->addr[5]);
 			HCI_REG(&(hci_dev->keyres),keyres);
 		} else
 			ERROR("hci_return_link_key_evt: Could not allocate memory for link key result\n");

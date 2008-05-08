@@ -273,7 +273,6 @@ void bt_log(const char *filename,int line_nb,char *msg);
 #define MEMP_NUM_BTE_PCB				(2 + 2 * MAX_NUM_CLIENTS) /* Two for DT + Two per number of connected Bluetooth clients */
 #define MEMP_NUM_BTE_PCB_LISTEN			(2 * MAX_NUM_CLIENTS) /* Two per number of connected Bluetooth clients */
 
-#define MEMP_NUM_BTE_MSG				256
 #define MEMP_NUM_BTE_CTRLS				256
 
 /* ---------- HCI options ---------- */

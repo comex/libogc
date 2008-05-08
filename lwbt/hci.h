@@ -440,7 +440,8 @@ err_t lp_write_flush_timeout(struct bd_addr *bdaddr, u16_t flushto);
 /* The HCI LINK lists. */
 extern struct hci_link *hci_active_links; /* List of all active HCI LINKs */
 extern struct hci_link *hci_tmp_link; /* Only used for temporary storage. */
-   
+extern struct hci_link_key *hci_tmp_key;
+
 #define HCI_REG(links, nlink) do { \
 							u32 level; \
 							_CPU_ISR_Disable(level); \
