@@ -38,9 +38,9 @@ distribution.
 
 
 static int __conf_inited = 0;
-static u8 __conf_buffer[0x4000] __attribute__((aligned(0x20)));
+static u8 __conf_buffer[0x4000] ATTRIBUTE_ALIGN(32);
 
-static const char __conf_file[] __attribute__((aligned(0x20)))= "/shared2/sys/SYSCONF";
+static const char __conf_file[] ATTRIBUTE_ALIGN(32) = "/shared2/sys/SYSCONF";
 
 s32 CONF_Init(void)
 {
@@ -62,6 +62,7 @@ s32 CONF_Init(void)
 	__conf_inited = 1;
 	return 0;
 }
+
 u8 *__CONF_Find(const char *name)
 {
 	u16 count;
@@ -78,8 +79,10 @@ u8 *__CONF_Find(const char *name)
 	return NULL;
 }
 
-s32 CONF_GetLength(const char *name) {
+s32 CONF_GetLength(const char *name)
+{
 	u8 *entry;
+
 	if(!__conf_inited) return CONF_ENOTINIT;
 	
 	entry = __CONF_Find(name);
@@ -103,7 +106,8 @@ s32 CONF_GetLength(const char *name) {
 	}
 }
 
-int CONF_GetType(const char *name) {
+int CONF_GetType(const char *name) 
+{
 	u8 *entry;
 	if(!__conf_inited) return CONF_ENOTINIT;
 	
@@ -146,7 +150,8 @@ s32 CONF_Get(const char *name, void *buffer, u32 length)
 	return len;
 }
 
-s32 CONF_GetShutdownMode(void) {
+s32 CONF_GetShutdownMode(void) 
+{
 	u8 idleconf[2] = {0,0};
 	int res;
 	
@@ -156,7 +161,8 @@ s32 CONF_GetShutdownMode(void) {
 	return idleconf[0];
 }
 
-s32 CONF_GetIdleLedMode(void) {
+s32 CONF_GetIdleLedMode(void) 
+{
 	int res;
 	u8 idleconf[2] = {0,0};
 	res = CONF_Get("IPL.IDL", idleconf, 2);
@@ -165,7 +171,8 @@ s32 CONF_GetIdleLedMode(void) {
 	return idleconf[1];
 }
 
-s32 CONF_GetProgressiveScan(void) {
+s32 CONF_GetProgressiveScan(void) 
+{
 	int res;
 	u8 val = 0;
 	res = CONF_Get("IPL.PGS", &val, 1);
@@ -174,7 +181,8 @@ s32 CONF_GetProgressiveScan(void) {
 	return val;
 }
 
-s32 CONF_GetEuRGB60(void) {
+s32 CONF_GetEuRGB60(void) 
+{
 	int res;
 	u8 val = 0;
 	res = CONF_Get("IPL.E60", &val, 1);
@@ -183,7 +191,8 @@ s32 CONF_GetEuRGB60(void) {
 	return val;
 }
 
-s32 CONF_GetIRSensitivity(void) {
+s32 CONF_GetIRSensitivity(void) 
+{
 	int res;
 	u32 val = 0;
 	res = CONF_Get("BT.SENS", &val, 4);
@@ -192,7 +201,8 @@ s32 CONF_GetIRSensitivity(void) {
 	return val;
 }
 
-s32 CONF_GetSensorBarPosition(void) {
+s32 CONF_GetSensorBarPosition(void) 
+{
 	int res;
 	u8 val = 0;
 	res = CONF_Get("BT.BAR", &val, 1);
@@ -201,7 +211,8 @@ s32 CONF_GetSensorBarPosition(void) {
 	return val;
 }
 
-s32 CONF_GetPadSpeakerVolume(void) {
+s32 CONF_GetPadSpeakerVolume(void) 
+{
 	int res;
 	u8 val = 0;
 	res = CONF_Get("BT.SPKV", &val, 1);
@@ -210,7 +221,8 @@ s32 CONF_GetPadSpeakerVolume(void) {
 	return val;
 }
 
-s32 CONF_GetPadMotorMode(void) {
+s32 CONF_GetPadMotorMode(void) 
+{
 	int res;
 	u8 val = 0;
 	res = CONF_Get("BT.MOT", &val, 1);
@@ -219,7 +231,8 @@ s32 CONF_GetPadMotorMode(void) {
 	return val;
 }
 
-s32 CONF_GetSoundMode(void) {
+s32 CONF_GetSoundMode(void) 
+{
 	int res;
 	u8 val = 0;
 	res = CONF_Get("IPL.SND", &val, 1);
@@ -228,7 +241,8 @@ s32 CONF_GetSoundMode(void) {
 	return val;
 }
 
-s32 CONF_GetLanguage(void) {
+s32 CONF_GetLanguage(void) 
+{
 	int res;
 	u8 val = 0;
 	res = CONF_Get("IPL.LNG", &val, 1);
@@ -237,7 +251,8 @@ s32 CONF_GetLanguage(void) {
 	return val;
 }
 
-s32 CONF_GetCounterBias(void) {
+s32 CONF_GetCounterBias(void) 
+{
 	int res;
 	u32 val = 0;
 	res = CONF_Get("IPL.CB", &val, 4);
@@ -246,7 +261,8 @@ s32 CONF_GetCounterBias(void) {
 	return val;
 }
 
-s32 CONF_GetScreenSaverMode(void) {
+s32 CONF_GetScreenSaverMode(void) 
+{
 	int res;
 	u8 val = 0;
 	res = CONF_Get("IPL.SSV", &val, 1);
@@ -255,7 +271,8 @@ s32 CONF_GetScreenSaverMode(void) {
 	return val;
 }
 
-s32 CONF_GetDisplayOffsetH(s8 *offset) {
+s32 CONF_GetDisplayOffsetH(s8 *offset) 
+{
 	int res;
 	res = CONF_Get("IPL.SSV", offset, 1);
 	if(res<0) return res;
@@ -263,21 +280,15 @@ s32 CONF_GetDisplayOffsetH(s8 *offset) {
 	return 0;
 }
 
-s32 CONF_GetPadDevices(conf_pad_device *devs, int count) {
+s32 CONF_GetPadDevices(conf_pad_device *devs, int count) 
+{
 	int res;
-	u8 *buf;
+	u8 buf[0x461];
 	
-	buf = malloc(0x461);
-	if(!buf) return CONF_ENOMEM;
 	res = CONF_Get("BT.DINF", buf, 0x461);
-	if(res < 0) {
-		free(buf);
-		return res;
-	}
-	if((res < 1) || (buf[0] > 0x10)) {
-		free(buf);
-		return CONF_EBADVALUE;
-	}
+	if(res < 0) return res;
+	if((res < 1) || (buf[0] > 0x10)) return CONF_EBADVALUE;
+
 	if(count && devs) {
 		memset(devs,0,count*sizeof(conf_pad_device));
 		if(count < buf[0])
@@ -285,10 +296,9 @@ s32 CONF_GetPadDevices(conf_pad_device *devs, int count) {
 		else
 			memcpy(devs,&buf[1],buf[0]*sizeof(conf_pad_device));
 	}
+
 	res = buf[0];
-	free(buf);
 	return res;
-	
 }
 
 #endif

@@ -34,13 +34,17 @@ distribution.
 #include <gctypes.h>
 #include <gcutil.h>
 
-#define CONF_EBADFILE -0x6001
-#define CONF_ENOENT -0x6002
-#define CONF_ETOOBIG -0x6003
-#define CONF_ENOTINIT -0x6004
-#define CONF_ENOTIMPL -0x6005
-#define CONF_EBADVALUE -0x6006
-#define CONF_ENOMEM -0x6007
+#define CONF_EBADFILE	-0x6001
+#define CONF_ENOENT		-0x6002
+#define CONF_ETOOBIG	-0x6003
+#define CONF_ENOTINIT	-0x6004
+#define CONF_ENOTIMPL	-0x6005
+#define CONF_EBADVALUE	-0x6006
+#define CONF_ENOMEM		-0x6007
+
+#ifdef __cplusplus
+   extern "C" {
+#endif /* __cplusplus */
 
 enum {
 	CONF_BIGARRAY = 1,
@@ -50,6 +54,13 @@ enum {
 	CONF_LONG,
 	CONF_BOOL = 7
 };
+
+typedef struct _conf_pad_device conf_pad_device;
+
+struct _conf_pad_device {
+	u8 bdaddr[6];
+	char name[0x40];
+} ATTRIBUTE_PACKED;
 
 s32 CONF_Init(void);
 s32 CONF_GetLength(const char *name);
@@ -68,13 +79,12 @@ s32 CONF_GetLanguage(void);
 s32 CONF_GetCounterBias(void);
 s32 CONF_GetScreenSaverMode(void);
 s32 CONF_GetDisplayOffsetH(s8 *offset);
-
-typedef struct {
-	u8 bdaddr[6];
-	char name[0x40];
-} __attribute__((packed)) conf_pad_device;
-
 s32 CONF_GetPadDevices(conf_pad_device *devs, int count);
 
+#ifdef __cplusplus
+   }
+#endif /* __cplusplus */
+
 #endif
+
 #endif
