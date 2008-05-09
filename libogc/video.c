@@ -2342,5 +2342,5 @@ void VIDEO_ClearFrameBuffer(GXRModeObj *rmode,void *fb,u32 color)
 
 u32 VIDEO_HaveComponentCable(void)
 {
-	return _viReg[55] & 1;
+	return (_viReg[55]&0x01);
 }
