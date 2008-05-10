@@ -301,4 +301,83 @@ s32 CONF_GetPadDevices(conf_pad_device *devs, int count)
 	return res;
 }
 
+s32 CONF_GetNickName(u8 *nickname)
+{
+	int i, res;
+	u16 buf[11];
+
+        res = CONF_Get("IPL.NIK", buf, 0x16);
+        if(res < 0) return res;
+        if((res != 0x16) || (!buf[0])) return CONF_EBADVALUE;
+
+	for(i=0; i<10; i++)
+		nickname[i] = buf[i];
+	nickname[10] = 0;
+
+	return res;
+}
+
+s32 CONF_GetAspectRatio(void)
+{
+	int res;
+	u8 val = 0;
+
+	res = CONF_Get("IPL.AR", &val, 1);
+	if(res < 0) return res;
+	if(res!=1) return CONF_EBADVALUE;
+	return val;
+}
+
+s32 CONF_GetEULA(void)
+{
+	int res;
+	u8 val = 0;
+
+	res = CONF_Get("IPL.EULA", &val, 1);
+	if(res < 0) return res;
+	if(res!=1) return CONF_EBADVALUE;
+	return val;
+}
+
+s32 CONF_GetParentalPassword(s8 *password)
+{
+	int res;
+	u8 buf[0x4A];
+
+	res = CONF_Get("IPL.PC", buf, 0x4A);
+	if(res < 0) return res;
+	if(res!=1) return CONF_EBADVALUE;
+
+	memcpy(password, buf+3, 4);
+	password[4] = 0;
+
+	return res;
+}
+
+s32 CONF_GetParentalAnswer(s8 *answer)
+{
+	int res;
+	u8 buf[0x4A];
+
+	res = CONF_Get("IPL.PC", buf, 0x4A);
+	if(res < 0) return res;
+	if(res!=1) return CONF_EBADVALUE;
+
+	memcpy(answer, buf+8, 32);
+	answer[32] = 0;
+
+	return res;
+}
+
+s32 CONF_GetWirelessConnection(void)
+{
+	int res;
+	u32 val = 0;
+
+	res = CONF_Get("NET.WCFG", &val, 4);
+	if(res < 0) return res;
+	if(res!=4) return CONF_EBADVALUE;
+	return val;
+}
+
 #endif

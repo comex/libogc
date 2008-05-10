@@ -80,6 +80,12 @@ s32 CONF_GetCounterBias(void);
 s32 CONF_GetScreenSaverMode(void);
 s32 CONF_GetDisplayOffsetH(s8 *offset);
 s32 CONF_GetPadDevices(conf_pad_device *devs, int count);
+s32 CONF_GetNickName(u8 *nickname);
+s32 CONF_GetAspectRatio(void);
+s32 CONF_GetEULA(void);
+s32 CONF_GetParentalPassword(s8 *password);
+s32 CONF_GetParentalAnswer(s8 *answer);
+s32 CONF_GetWirelessConnection(void);
 
 #ifdef __cplusplus
    }
