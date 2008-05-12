@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
+#include <unistd.h>
 #include <ogcsys.h>
 
 #include "asm.h"
@@ -11,7 +12,7 @@
 #include "system.h"
 #include "semaphore.h"
 #include "card_cmn.h"
-#include "card_fat.h"
+//#include "card_fat.h"
 #include "card_io.h"
 
 //#define _CARDIO_DEBUG
@@ -300,8 +301,8 @@ static void __exi_wait(s32 drv_no)
 
 static s32 __card_exthandler(s32 chn,s32 dev)
 {
-	card_doUnmount(chn);
-	card_ejectedCB(chn);
+	sdgecko_doUnmount(chn);
+	sdgecko_ejectedCB(chn);
 	return 1;
 }
 
@@ -1285,7 +1286,7 @@ static boolean __card_check(s32 drv_no)
 #ifdef _CARDIO_DEBUG	
 		printf("__card_check(%d, attached)\n",drv_no);
 #endif
-		card_insertedCB(drv_no);
+		sdgecko_insertedCB(drv_no);
 	}
 	return TRUE;
 }
@@ -1297,10 +1298,10 @@ static s32 __card_retrycb(s32 drv_no)
 #endif
 	_ioRetryCB = NULL;
 	_ioRetryCnt++;
-	return card_initIO(drv_no);
+	return sdgecko_initIO(drv_no);
 }
 
-void card_initIODefault()
+void sdgecko_initIODefault()
 {
 	u32 i;
 #ifdef _CARDIO_DEBUG	
@@ -1317,10 +1318,18 @@ void card_initIODefault()
 	}
 }
 
-s32 card_initIO(s32 drv_no)
+s32 sdgecko_initIO(s32 drv_no)
 {
 	if(drv_no<0 || drv_no>=MAX_DRIVE) return CARDIO_ERROR_NOCARD;
-	if(_ioRetryCnt>5) return CARDIO_ERROR_IOERROR;
+
+	u32 id = 0;
+	EXI_GetID(drv_no,EXI_DEVICE_0,&id);
+	if ( id != -1 ) return CARDIO_ERROR_NOCARD;
+
+	if(_ioRetryCnt>5) {
+		_ioRetryCnt = 0;
+		return CARDIO_ERROR_IOERROR;
+	}
 	
 	_ioCardInserted[drv_no] = __card_check(drv_no);
 
@@ -1347,20 +1356,20 @@ s32 card_initIO(s32 drv_no)
 		return CARDIO_ERROR_READY;
 exit:
 		_ioRetryCB = __card_retrycb;
-		return card_doUnmount(drv_no);
+		return sdgecko_doUnmount(drv_no);
 	}
 	return CARDIO_ERROR_NOCARD;
 }
 
-s32 card_preIO(s32 drv_no)
+s32 sdgecko_preIO(s32 drv_no)
 {
 	s32 ret;
 
 	if(_ioFlag[drv_no]!=INITIALIZED) {
-		ret = card_initIO(drv_no);
+		ret = sdgecko_initIO(drv_no);
 		if(ret!=CARDIO_ERROR_READY) {
 #ifdef _CARDIO_DEBUG	
-			printf("card_preIO(%d,ret = %d)\n",drv_no,ret);
+			printf("sdgecko_preIO(%d,ret = %d)\n",drv_no,ret);
 #endif
 			return ret;
 		}
@@ -1368,61 +1377,61 @@ s32 card_preIO(s32 drv_no)
 	return CARDIO_ERROR_READY;
 }
 
-s32 card_readCID(s32 drv_no)
+s32 sdgecko_readCID(s32 drv_no)
 {
 	s32 ret;
 
 	if(drv_no<EXI_CHANNEL_0 || drv_no>=EXI_CHANNEL_2) return CARDIO_ERROR_NOCARD;
 #ifdef _CARDIO_DEBUG
-	printf("card_readCID(%d)\n",drv_no);
+	printf("sdgecko_readCID(%d)\n",drv_no);
 #endif
-	ret = card_preIO(drv_no);
+	ret = sdgecko_preIO(drv_no);
 	if(ret!=0) return ret;
 	
 	return __card_readcid(drv_no);
 }
 
-s32 card_readCSD(s32 drv_no)
+s32 sdgecko_readCSD(s32 drv_no)
 {
 	s32 ret;
 
 	if(drv_no<0 || drv_no>=MAX_DRIVE) return CARDIO_ERROR_NOCARD;
 #ifdef _CARDIO_DEBUG
-	printf("card_readCSD(%d)\n",drv_no);
+	printf("sdgecko_readCSD(%d)\n",drv_no);
 #endif
-	ret = card_preIO(drv_no);
+	ret = sdgecko_preIO(drv_no);
 	if(ret!=0) return ret;
 
 	return __card_readcsd(drv_no);
 }
 
-s32 card_readStatus(s32 drv_no)
+s32 sdgecko_readStatus(s32 drv_no)
 {
 	s32 ret;
 
 	if(drv_no<0 || drv_no>=MAX_DRIVE) return CARDIO_ERROR_NOCARD;
 #ifdef _CARDIO_DEBUG
-	printf("card_readCSD(%d)\n",drv_no);
+	printf("sdgecko_readCSD(%d)\n",drv_no);
 #endif
-	ret = card_preIO(drv_no);
+	ret = sdgecko_preIO(drv_no);
 	if(ret!=0) return ret;
 
 	return __card_sd_status(drv_no);
 }
 
-s32 card_readSector(s32 drv_no,u32 sector_no,u8 *buf,u32 len)
+s32 sdgecko_readSector(s32 drv_no,u32 sector_no,u8 *buf,u32 len)
 {
 	s32 ret;
 	u8 arg[4];
 
 	if(drv_no<0 || drv_no>=MAX_DRIVE) return CARDIO_ERROR_NOCARD;
 
-	ret = card_preIO(drv_no);
+	ret = sdgecko_preIO(drv_no);
 	if(ret!=0) return ret;
 
 	if(len<1 || len>PAGE_SIZE512) return CARDIO_ERROR_INTERNAL;
 #ifdef _CARDIO_DEBUG
-	printf("card_readSector(%d,%d,%d,%d)\n",drv_no,sector_no,len,_ioPageSize[drv_no]);
+	printf("sdgecko_readSector(%d,%d,%d,%d)\n",drv_no,sector_no,len,_ioPageSize[drv_no]);
 #endif
 	arg[0] = (sector_no>>15)&0xff;
 	arg[1] = (sector_no>>7)&0xff;
@@ -1439,7 +1448,7 @@ s32 card_readSector(s32 drv_no,u32 sector_no,u8 *buf,u32 len)
 	return __card_dataread(drv_no,buf,_ioPageSize[drv_no]);
 }
 
-s32 card_writeSector(s32 drv_no,u32 sector_no,const void *buf,u32 len)
+s32 sdgecko_writeSector(s32 drv_no,u32 sector_no,const void *buf,u32 len)
 {
 	s32 ret;
 	u8 arg[4];
@@ -1447,12 +1456,12 @@ s32 card_writeSector(s32 drv_no,u32 sector_no,const void *buf,u32 len)
 
 	if(drv_no<0 || drv_no>=MAX_DRIVE) return CARDIO_ERROR_NOCARD;
 
-	ret = card_preIO(drv_no);
+	ret = sdgecko_preIO(drv_no);
 	if(ret!=0) return ret;
 
 	if(len!=PAGE_SIZE512) return CARDIO_ERROR_INTERNAL;
 #ifdef _CARDIO_DEBUG
-	printf("card_writeSector(%d,%d,%d,%d)\n",drv_no,sector_no,len,_ioPageSize[drv_no]);
+	printf("sdgecko_writeSector(%d,%d,%d,%d)\n",drv_no,sector_no,len,_ioPageSize[drv_no]);
 #endif
 	arg[0] = (sector_no>>15)&0xff;
 	arg[1] = (sector_no>>7)&0xff;
@@ -1472,7 +1481,7 @@ s32 card_writeSector(s32 drv_no,u32 sector_no,const void *buf,u32 len)
 	return ret;
 }
 
-s32 card_erasePartialBlock(s32 drv_no,u32 block_no,u32 offset,u32 len)
+s32 sdgecko_erasePartialBlock(s32 drv_no,u32 block_no,u32 offset,u32 len)
 {
 	s32 ret;
 	u8 arg[4];
@@ -1481,10 +1490,10 @@ s32 card_erasePartialBlock(s32 drv_no,u32 block_no,u32 offset,u32 len)
 
 	if(drv_no<0 || drv_no>=MAX_DRIVE) return CARDIO_ERROR_NOCARD;
 
-	ret = card_preIO(drv_no);
+	ret = sdgecko_preIO(drv_no);
 	if(ret!=0) return ret;
 #ifdef _CARDIO_DEBUG
-	printf("card_eraseBlock(%d,%d,%d,%d)\n",drv_no,block_no,offset,len);
+	printf("sdgecko_eraseBlock(%d,%d,%d,%d)\n",drv_no,block_no,offset,len);
 #endif
 	if(len<PAGE_SIZE512 || len%PAGE_SIZE512) return CARDIO_ERROR_INTERNAL; 
 
@@ -1515,7 +1524,7 @@ s32 card_erasePartialBlock(s32 drv_no,u32 block_no,u32 offset,u32 len)
 	return ret;
 }
 
-s32 card_eraseWholeBlock(s32 drv_no,u32 block_no)
+s32 sdgecko_eraseWholeBlock(s32 drv_no,u32 block_no)
 {
 	s32 ret;
 	u8 arg[4];
@@ -1524,10 +1533,10 @@ s32 card_eraseWholeBlock(s32 drv_no,u32 block_no)
 
 	if(drv_no<0 || drv_no>=MAX_DRIVE) return CARDIO_ERROR_NOCARD;
 
-	ret = card_preIO(drv_no);
+	ret = sdgecko_preIO(drv_no);
 	if(ret!=0) return ret;
 #ifdef _CARDIO_DEBUG
-	printf("card_eraseBlock(%d,%d)\n",drv_no,block_no);
+	printf("sdgecko_eraseBlock(%d,%d)\n",drv_no,block_no);
 #endif
 	sects_per_block = (1<<(C_SIZE_MULT(drv_no)+2));
 
@@ -1554,17 +1563,17 @@ s32 card_eraseWholeBlock(s32 drv_no,u32 block_no)
 	return ret;
 }
 
-s32 card_eraseSector(s32 drv_no,u32 sector_no)
+s32 sdgecko_eraseSector(s32 drv_no,u32 sector_no)
 {
 	s32 ret;
 	u8 arg[4];
 
 	if(drv_no<0 || drv_no>=MAX_DRIVE) return CARDIO_ERROR_NOCARD;
 
-	ret = card_preIO(drv_no);
+	ret = sdgecko_preIO(drv_no);
 	if(ret!=0) return ret;
 #ifdef _CARDIO_DEBUG
-	printf("card_eraseSector(%d,%d)\n",drv_no,sector_no);
+	printf("sdgecko_eraseSector(%d,%d)\n",drv_no,sector_no);
 #endif
 	arg[0] = (sector_no>>15)&0xff;
 	arg[1] = (sector_no>>7)&0xff;
@@ -1586,7 +1595,7 @@ s32 card_eraseSector(s32 drv_no,u32 sector_no)
 	return ret;
 }
 
-s32 card_doUnmount(s32 drv_no)
+s32 sdgecko_doUnmount(s32 drv_no)
 {
 	s32 ret;
 	boolean io_cardinserted;
@@ -1606,7 +1615,7 @@ s32 card_doUnmount(s32 drv_no)
 		if((ret=__card_sendcmd(drv_no,0x2a,NULL))!=0) goto exit;
 		ret = __card_response1(drv_no);
 #ifdef _CARDIO_DEBUG
-		printf("card_doUnmount(%d) disconnected 50KOhm pull-up(%d)\n",drv_no,ret);
+		printf("sdgecko_doUnmount(%d) disconnected 50KOhm pull-up(%d)\n",drv_no,ret);
 #endif
 	}
 exit:
@@ -1616,3 +1625,18 @@ exit:
 
 	return CARDIO_ERROR_READY;
 }
+static void (*pfCallbackIN[MAX_DRIVE])(s32) = {NULL, NULL};
+static void (*pfCallbackOUT[MAX_DRIVE])(s32) = {NULL, NULL};
+
+void sdgecko_insertedCB(s32 drv_no)
+{
+	if(pfCallbackIN[drv_no])
+		pfCallbackIN[drv_no](drv_no);
+}
+
+void sdgecko_ejectedCB(s32 drv_no)
+{
+	if(pfCallbackOUT[drv_no])
+		pfCallbackOUT[drv_no](drv_no);
+}
+

@@ -43,7 +43,7 @@ export MADDIR		:= $(BASEDIR)/libmad
 export SAMPLEDIR	:= $(BASEDIR)/libsamplerate
 export DBDIR		:= $(BASEDIR)/libdb
 export BTEDIR		:= $(BASEDIR)/lwbt
-export SDCARDDIR	:= $(BASEDIR)/libsdcard
+export WIIUSEDIR	:= $(BASEDIR)/wiiuse
 export TINYSMBDIR	:= $(BASEDIR)/libtinysmb
 export LIBZDIR		:= $(BASEDIR)/libz
 export STUBSDIR		:= $(BASEDIR)/lockstubs
@@ -71,7 +71,7 @@ MODLIB		:= $(LIBDIR)/libmodplay
 MADLIB		:= $(LIBDIR)/libmad
 DBLIB		:= $(LIBDIR)/libdb
 BTELIB		:= $(LIBDIR)/libbte
-SDCARDLIB	:= $(LIBDIR)/libsdcard
+WIIUSELIB	:= $(LIBDIR)/libwiiuse
 TINYSMBLIB	:= $(LIBDIR)/libtinysmb
 ZLIB		:= $(LIBDIR)/libz
 STUBSLIB	:= $(LIBDIR)/libgclibstubs
@@ -80,8 +80,9 @@ STUBSLIB	:= $(LIBDIR)/libgclibstubs
 DEFINCS		:= -I$(BASEDIR) -I$(BASEDIR)/gc
 INCLUDES	:=	$(DEFINCS) -I$(BASEDIR)/gc/netif -I$(BASEDIR)/gc/ipv4 \
 				-I$(BASEDIR)/gc/ogc -I$(BASEDIR)/gc/ogc/machine -I$(BASEDIR)/gc/tinysmb \
-				-I$(BASEDIR)/gc/modplay -I$(BASEDIR)/gc/mad -I$(BASEDIR)/gc/sdcard \
-				-I$(BASEDIR)/gc/z -I$(BASEDIR)/gc/lwbt
+				-I$(BASEDIR)/gc/modplay -I$(BASEDIR)/gc/mad \
+				-I$(BASEDIR)/gc/z -I$(BASEDIR)/gc/lwbt \
+				-I$(BASEDIR)/gc/sdcard
 
 MACHDEP		:= -DBIGENDIAN -DGEKKO -mcpu=750 -meabi -msdata=eabi -mhard-float -fmodulo-sched -ffunction-sections -fdata-sections
 
@@ -110,6 +111,7 @@ VPATH :=	$(LWIPDIR)				\
 			$(DBDIR)			\
 			$(DBDIR)/uIP		\
 			$(BTEDIR)		\
+			$(WIIUSEDIR)		\
 			$(SDCARDDIR)			\
 			$(TINYSMBDIR)		\
 			$(LIBZDIR)		\
@@ -137,11 +139,7 @@ OGCOBJ		:=	\
 			depackrnc1.o dsp.o si.o tdf.o ipc.o ogc_crt0.o \
 			console_font_8x16.o timesupp.o lock_supp.o newlibc.o usbgecko.o \
 			sbrk.o malloc_lock.o kprintf.o stm.o ios.o es.o isfs.o usb.o network_common.o \
-			conf.o
-
-ifeq ($(PLATFORM),wii)
-OGCOBJ	+=	network_wii.o
-endif
+			sdgecko_io.o sdgecko_buf.o argv.o network_wii.o wiisd.o conf.o
 
 #---------------------------------------------------------------------------------
 MODOBJ		:=	freqtab.o mixer.o modplay.o semitonetab.o gcmodplay.o
@@ -160,7 +158,8 @@ DBOBJ		:=	uip_ip.o uip_tcp.o uip_pbuf.o uip_netif.o uip_arp.o uip_arch.o \
 BTEOBJ		:=	bte.o hci.o l2cap.o btmemb.o btmemr.o btpbuf.o physbusif.o
 
 #---------------------------------------------------------------------------------
-SDCARDOBJ	:=	sdcard.o sdcardio.o card_fat.o card_buf.o card_io.o card_uni.o
+WIIUSEOBJ	:=	classic.o dynamics.o events.o guitar_hero_3.o io.o io_wii.o ir.o \
+				nunchuk.o wiiuse.o wpad.o
 
 #---------------------------------------------------------------------------------
 TINYSMBOBJ	:=	des.o lmhash.o smb.o
@@ -244,13 +243,13 @@ $(MADLIB).a: $(MADOBJ)
 #---------------------------------------------------------------------------------
 $(DBLIB).a: $(DBOBJ)
 #---------------------------------------------------------------------------------
-$(SDCARDLIB).a: $(SDCARDOBJ)
-#---------------------------------------------------------------------------------
 $(TINYSMBLIB).a: $(TINYSMBOBJ)
 #---------------------------------------------------------------------------------
 $(ZLIB).a: $(ZLIBOBJ)
 #---------------------------------------------------------------------------------
 $(BTELIB).a: $(BTEOBJ)
+#---------------------------------------------------------------------------------
+$(WIIUSELIB).a: $(WIIUSEOBJ)
 #---------------------------------------------------------------------------------
  
 .PHONY: libs install-headers install dist docs
@@ -259,14 +258,17 @@ $(BTELIB).a: $(BTEOBJ)
 install-headers:
 #---------------------------------------------------------------------------------
 	@mkdir -p $(INCDIR)
-	@mkdir -p $(INCDIR)/ogc
+	@mkdir -p $(INCDIR)/ogc/machine
 	@mkdir -p $(INCDIR)/bte
+	@mkdir -p $(INCDIR)/wiiuse
 	@mkdir -p $(INCDIR)/modplay
 	@mkdir -p $(INCDIR)/mad
 	@mkdir -p $(INCDIR)/sdcard
 	@cp ./gc/*.h $(INCDIR)
 	@cp ./gc/ogc/*.h $(INCDIR)/ogc
+	@cp ./gc/ogc/machine/*.h $(INCDIR)/ogc/machine
 	@cp ./gc/lwbt/*.h $(INCDIR)/bte
+	@cp ./gc/wiiuse/*.h $(INCDIR)/wiiuse
 	@cp ./gc/modplay/*.h $(INCDIR)/modplay
 	@cp ./gc/mad/*.h $(INCDIR)/mad
 	@cp ./gc/sdcard/*.h $(INCDIR)/sdcard
@@ -289,13 +291,13 @@ dist: install-headers
 	@tar -cvjf libogc-$(DATESTRING).tar.bz2 include lib libogc_license.txt
 
 
-LIBRARIES	:=	$(OGCLIB).a  $(MODLIB).a $(MADLIB).a $(DBLIB).a $(ZLIB).a $(TINYSMBLIB).a $(SDCARDLIB).a
+LIBRARIES	:=	$(OGCLIB).a  $(MODLIB).a $(MADLIB).a $(DBLIB).a $(ZLIB).a $(TINYSMBLIB).a
 
 ifeq ($(PLATFORM),cube)
 LIBRARIES	+=	$(BBALIB).a 
 endif
 ifeq ($(PLATFORM),wii)
-LIBRARIES	+=	$(BTELIB).a
+LIBRARIES	+=	$(BTELIB).a $(WIIUSELIB).a
 endif
 
 #---------------------------------------------------------------------------------
