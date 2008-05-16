@@ -44,7 +44,7 @@ distribution.
 #include <string.h>
 #include <errno.h>
 #include <unistd.h>
-
+#include <fcntl.h>
 #include "ipc.h"
 #include "processor.h"
 #include "network.h"
@@ -93,6 +93,10 @@ enum {
 #define IOCTL_NCD_SETIFCONFIG4		0x04
 #define IOCTL_NCD_GETLINKSTATUS		0x07
 
+// courtesy of Marcan
+#define ALIGN_ARRAY(type, name, size) type _al__##name[size+(32/sizeof(type))]; \
+						type *name = (type*)((((u32)(_al__##name)) + 31) & (~31))
+
 static s32 net_ip_top_fd = -1;
 static s32 __net_hid = -1;
 static char __manage_fs[] ATTRIBUTE_ALIGN(32) = "/dev/net/ncd/manage";
@@ -114,10 +118,10 @@ static s32 _open_manage_fd(void)
 s32 NCDGetLinkStatus(void) {
 	s32 ret;
 	s32 ncd_fd = _open_manage_fd();
-	static u8 linkinfo[0x20] ATTRIBUTE_ALIGN(32);
+	ALIGN_ARRAY(u8, linkinfo, 0x20);
   
 	ret = IOS_IoctlvFormat(__net_hid, ncd_fd, IOCTL_NCD_GETLINKSTATUS, 
-		":d", linkinfo, sizeof linkinfo);
+		":d", linkinfo, 0x20);
 
   	if (ret < 0) debug_printf("NCDGetLinkStatus returned error %d\n", ret);
 
@@ -127,7 +131,8 @@ s32 NCDGetLinkStatus(void) {
 static s32 NWC24iStartupSocket(void)
 {
 	s32 kd_fd, ret;
-	static char kd_buf[0x20] ATTRIBUTE_ALIGN(32);
+	ALIGN_ARRAY(u8, kd_buf, 0x20);
+	
 	kd_fd = IOS_Open(__kd_fs, 0);
 	if (kd_fd < 0) {
 		debug_printf("IOS_Open(%s) failed with code %d\n", __kd_fs, kd_fd);
@@ -135,7 +140,7 @@ static s32 NWC24iStartupSocket(void)
 	}
   
 	ret = IOS_Ioctl(kd_fd, IOCTL_NWC24_STARTUP,
-		  	NULL, 0, kd_buf, sizeof kd_buf);
+		  	NULL, 0, kd_buf, 0x20);
 	if (ret < 0) debug_printf("IOS_Ioctl(6)=%d\n", ret);
   	IOS_Close(kd_fd);
   	return ret;
@@ -164,6 +169,7 @@ s32 net_init(void)
 		debug_printf("NCDGetLinkStatus returned %d\n", ret);
 		return ret;
 	}
+	
 	__net_hid = iosCreateHeap(0x2000);
 	if (__net_hid < 0) return __net_hid;
 	
@@ -205,29 +211,34 @@ s32 net_init(void)
 }
 
 
-/* Returned value is a pointer to a static buffer; the caller
-   must copy data out of the buffer before calling this function again. */
+/* Returned value is an allocated buffer; the caller must free after using */
 struct hostent * net_gethostbyname(char *addrString)
 {
 	s32 ret, len, i;
-	u8 *params;
-	static u8 ipBuffer[0x460] ATTRIBUTE_ALIGN(32);
+	u8 *params, *ipBuffer;
 	struct hostent *ipData;
 	u32 addrOffset;
 
-	memset(ipBuffer, 0, sizeof ipBuffer);
+	ipBuffer = iosAlloc(__net_hid, 0x460);
+	if (ipBuffer==NULL) {
+		errno = IPC_ENOMEM;
+		return NULL;
+	}
+
+	memset(ipBuffer, 0, 0x460);
 
 	len = strlen(addrString) + 1;
 	params = iosAlloc(__net_hid, len);
 	if (params==NULL) {
 		errno = IPC_ENOMEM;
+		iosFree(__net_hid, ipBuffer);
 		return NULL;
 	}
 
 	memcpy(params, addrString, len);
 
 	ret = IOS_Ioctl(net_ip_top_fd, IOCTL_SO_GETHOSTBYNAME, 
-					params, len, ipBuffer, sizeof ipBuffer);
+					params, len, ipBuffer, 0x460);
 
 	iosFree(__net_hid, params);
 
@@ -259,14 +270,13 @@ struct hostent * net_gethostbyname(char *addrString)
 s32 net_socket(u32 domain, u32 type, u32 protocol)
 {
 	s32 ret;
-	static u32 params[3] ATTRIBUTE_ALIGN(32);
-
+	ALIGN_ARRAY(u32, params, 3);
 	params[0] = domain;
 	params[1] = type;
 	params[2] = protocol;
 
 	ret = IOS_Ioctl(net_ip_top_fd, IOCTL_SO_SOCKET, 
-		     	params, sizeof params, NULL, 0);
+		     	params, 12, NULL, 0);
 	debug_printf("net_socket(%d, %d, %d)=%d\n", domain, type, protocol, ret);
 	return ret;		
 }
@@ -274,37 +284,39 @@ s32 net_socket(u32 domain, u32 type, u32 protocol)
 s32 net_shutdown(s32 s, u32 how)
 {
        s32 ret;
-       static u32 params[2] ATTRIBUTE_ALIGN(32);
-
+       ALIGN_ARRAY(u32, params, 2);
        params[0] = s;
        params[1] = how;
 
        ret = IOS_Ioctl(net_ip_top_fd, IOCTL_SO_SHUTDOWN, 
-                       params, sizeof params, NULL, 0);
+                       params, 8, NULL, 0);
        debug_printf("net_shutdown(%d, %d)=%d\n", s, how, ret);
        return ret;             
 }
 
+struct bind_params {
+	u32 socket;
+	u32 has_name;
+	u8 name[28];
+};
+
 s32 net_bind(s32 s, struct sockaddr *name, socklen_t namelen)
 {
 	s32 ret;
-	static struct {
-		u32 socket;
-		u32 has_name;
-		u8 name[28];
-	} params ATTRIBUTE_ALIGN(32);
+	struct bind_params *params = iosAlloc(__net_hid, sizeof(struct bind_params));
+	if (!params) return IPC_ENOMEM;
 
 	name->sa_len = 8;
 	if (name->sa_family != AF_INET) return -EAFNOSUPPORT;
 	//if (namelen < 8) return -EINVAL;
 
-	memset(&params, 0, sizeof params);
-	params.socket = s;
-	params.has_name = 1;
-	memcpy(&params.name, name, 8);
+	memset(params, 0, sizeof(struct bind_params));
+	params->socket = s;
+	params->has_name = 1;
+	memcpy(params->name, name, 8);
 
-	ret = IOS_Ioctl(net_ip_top_fd, IOCTL_SO_BIND, &params, sizeof params, NULL, 0);
-
+	ret = IOS_Ioctl(net_ip_top_fd, IOCTL_SO_BIND, params, sizeof (struct bind_params), NULL, 0);
+	iosFree(__net_hid, params);
 	debug_printf("net_bind(%d, %p)=%d\n", s, name, ret);
 	return ret;
 }
@@ -312,15 +324,15 @@ s32 net_bind(s32 s, struct sockaddr *name, socklen_t namelen)
 s32 net_listen(s32 s, u32 backlog)
 {
 	s32 ret;
-	static u32 params[2] ATTRIBUTE_ALIGN(32);
+	ALIGN_ARRAY(u32, params, 2);
 
 	params[0] = s;
 	params[1] = backlog;
 
 	debug_printf("calling ios_ioctl(%d, %d, %p, %d)\n", 
-		net_ip_top_fd, IOCTL_SO_SOCKET, params, sizeof(params));
+		net_ip_top_fd, IOCTL_SO_SOCKET, params, 8);
 
-	ret = IOS_Ioctl(net_ip_top_fd, IOCTL_SO_LISTEN, params, sizeof(params), NULL, 0);
+	ret = IOS_Ioctl(net_ip_top_fd, IOCTL_SO_LISTEN, params, 8, NULL, 0);
   	debug_printf("net_listen(%d, %d)=%d\n", s, backlog, ret);
 	return ret;	
 }
@@ -328,7 +340,7 @@ s32 net_listen(s32 s, u32 backlog)
 s32 net_accept(s32 s, struct sockaddr *addr, socklen_t *addrlen)
 {
 	s32 ret;
-	static u32 _socket ATTRIBUTE_ALIGN(32);
+	ALIGN_ARRAY(u32, _socket, 1);
 	debug_printf("net_accept()\n");
 
 	/*if (addr->sa_len != 8) return -EINVAL;
@@ -347,39 +359,44 @@ s32 net_accept(s32 s, struct sockaddr *addr, socklen_t *addrlen)
 
 	*addrlen = 8;
 
-	_socket = s;
+	*_socket = s;
 	debug_printf("calling ios_ioctl(%d, %d, %p, %d)\n", 
-		net_ip_top_fd, IOCTL_SO_ACCEPT, &_socket, sizeof _socket);
+		net_ip_top_fd, IOCTL_SO_ACCEPT, _socket, 4);
 	ret = IOS_Ioctl(net_ip_top_fd, IOCTL_SO_ACCEPT,
-						&_socket, sizeof(_socket), addr, *addrlen);
+						_socket, 4, addr, *addrlen);
 
 	debug_printf("net_accept(%d, %p)=%d\n", s, addr, ret);
 	return ret;
 }
 
+struct connect_params {
+	u32 socket;
+	u32 has_addr;
+	u8 addr[28];
+};
+
 s32 net_connect(s32 s, struct sockaddr *addr, socklen_t addrlen)
 {
 	s32 ret;
-	static struct {
-		u32 socket;
-		u32 has_addr;
-		u8 addr[28];
-	} params ATTRIBUTE_ALIGN(32);
-	
+	struct connect_params *params = iosAlloc(__net_hid, sizeof(struct connect_params));
+	if (!params) return IPC_ENOMEM;
+		
 	if (addr->sa_family != AF_INET) return -EAFNOSUPPORT;
 	if (addrlen < 8) return -EINVAL;
 	addr->sa_len = 8;
 
-	memset(&params, 0, sizeof params);
-	params.socket = s;
-	params.has_addr = 1;
-	memcpy(&params.addr, addr, addrlen);
+	memset(params, 0, sizeof(struct connect_params));
+	params->socket = s;
+	params->has_addr = 1;
+	memcpy(params->addr, addr, addrlen);
 
-	ret = IOS_Ioctl(net_ip_top_fd, IOCTL_SO_CONNECT, &params, sizeof params, NULL, 0);
+	ret = IOS_Ioctl(net_ip_top_fd, IOCTL_SO_CONNECT, params, 
+					sizeof(struct connect_params), NULL, 0);
 	if (ret < 0) {
     	debug_printf("SOConnect(%d, %p)=%d\n", s, addr, ret);
 	}
 
+	iosFree(__net_hid, params);
   	return ret;
 }
 
@@ -393,20 +410,22 @@ s32 net_send(s32 s, const void *data, s32 size, u32 flags)
 	return net_sendto(s, data, size, flags, NULL, 0);
 }
 
+struct sendto_params {
+	u32 socket;
+	u32 flags;
+	u32 has_destaddr;
+	u8 destaddr[28];
+}; 
+
 s32 net_sendto(s32 s, const void *data, s32 len, u32 flags, 
 				struct sockaddr *to, socklen_t tolen)
 {
 	s32 ret;
+	if (tolen > 28) return -EOVERFLOW;
 
-	static struct {
-		u32 socket;
-		u32 flags;
-		u32 has_destaddr;
-		u8 destaddr[28];
-	} params ATTRIBUTE_ALIGN(32);
+	struct sendto_params *params = iosAlloc(__net_hid, sizeof(struct sendto_params));
+	if (!params) return IPC_ENOMEM;
 
-	if (tolen > sizeof params.destaddr) return -EOVERFLOW;
-	
 	u8 * message_buf = iosAlloc(__net_hid, len);
 
 	if (message_buf == NULL) {
@@ -423,23 +442,23 @@ s32 net_sendto(s32 s, const void *data, s32 len, u32 flags,
 		to->sa_len = tolen;
 	}
 	
-	memset(&params, 0, sizeof params);
+	memset(params, 0, sizeof(struct sendto_params));
 	memcpy(message_buf, data, len);   // ensure message buf is aligned
 
-	params.socket = s;  
-	params.flags = flags;
+	params->socket = s;  
+	params->flags = flags;
 	if (to) {
-		params.has_destaddr = 1;
-		memcpy(&params.destaddr, to, to->sa_len);		
+		params->has_destaddr = 1;
+		memcpy(params->destaddr, to, to->sa_len);		
 	} else {
-		params.has_destaddr = 0;
+		params->has_destaddr = 0;
 	}
 
 	ret = IOS_IoctlvFormat(__net_hid, net_ip_top_fd, IOCTLV_SO_SENDTO,
-		       "dd:", message_buf, len, params, sizeof params);
+		       "dd:", message_buf, len, params, sizeof(struct sendto_params));
 	debug_printf("net_send retuned %d\n", ret);
 	iosFree(__net_hid, message_buf);
-
+	iosFree(__net_hid, params);
 	return ret;
 }
 
@@ -453,7 +472,7 @@ s32 net_recvfrom(s32 s, void *mem, s32 len, u32 flags,
 {
 	s32 ret;
 
-	static u32 params[2] ATTRIBUTE_ALIGN(32);
+	ALIGN_ARRAY(u32, params, 2);
 
 	if (len<=0) return -EINVAL;
 
@@ -477,7 +496,7 @@ s32 net_recvfrom(s32 s, void *mem, s32 len, u32 flags,
 	params[1] = flags;
 
 	ret = IOS_IoctlvFormat(__net_hid, net_ip_top_fd, IOCTLV_SO_RECVFROM,
-		       	"d:dd", params, sizeof params, message_buf, 
+		       	"d:dd", params, 8, message_buf, 
 				len, from, fromlen?*fromlen:0);
 	debug_printf("net_recvfrom returned %d\n", ret);
 
@@ -506,11 +525,11 @@ s32 net_read(s32 s, void *mem, s32 len)
 s32 net_close(s32 s)
 {
 	s32 ret;
-	static u32 _socket ATTRIBUTE_ALIGN(32);
+	ALIGN_ARRAY(u32, _socket, 1);
 
-	_socket = s;
+	*_socket = s;
 	ret = IOS_Ioctl(net_ip_top_fd, IOCTL_SO_CLOSE, 
-		&_socket, sizeof _socket, NULL, 0);
+		_socket, 4, NULL, 0);
 
 	if (ret < 0) debug_printf("net_close(%d)=%d\n", s, ret);
 
@@ -524,48 +543,58 @@ s32 net_select(s32 maxfdp1, fd_set *readset, fd_set *writeset,
 	return -EINVAL;
 }
 
+struct setsockopt_params {
+	u32 socket;
+	u32 level;
+	u32 optname;
+	u32 optlen;
+	u8 optval[20];
+};
+
 s32 net_setsockopt(s32 s, u32 level, u32 optname, 
 		const void *optval, socklen_t optlen)
 {
 	s32 ret;
 
-	static struct {
-		u32 socket;
-		u32 level;
-		u32 optname;
-		u32 optlen;
-		u8 optval[20];
-	} params ATTRIBUTE_ALIGN(32);
-
 	if (optlen < 0 || optlen > 20) return -EINVAL;
-	memset(&params, 0, sizeof params);
-	params.socket = s;
-	params.level = level;
-	params.optname = optname;
-	params.optlen = optlen;
-	if (optval && optlen) memcpy(&params.optval, optval, optlen);
+
+	struct setsockopt_params *params = iosAlloc(__net_hid, sizeof(struct setsockopt_params));
+	if (!params) return IPC_ENOMEM;
+	
+	memset(params, 0, sizeof(struct setsockopt_params));
+	params->socket = s;
+	params->level = level;
+	params->optname = optname;
+	params->optlen = optlen;
+	if (optval && optlen) memcpy (params->optval, optval, optlen);
 
 	ret = IOS_Ioctl(net_ip_top_fd, IOCTL_SO_SETSOCKOPT,
-		     	&params, sizeof params, NULL, 0);
+		     	params, sizeof(struct setsockopt_params), NULL, 0);
 
 	debug_printf("net_setsockopt(%d, %u, %u, %p, %d)=%d\n",
 				s, level, optname, optval, optlen, ret);
+	iosFree(__net_hid, params);
 	return ret;
 }
 
+s32 net_ioctl(s32 s, u32 cmd, void *argp) {
+	return -EINVAL;
+}
 
-s32 net_ioctl(s32 s, u32 cmd, void *argp)
+
+s32 net_fcntl(s32 s, u32 cmd, u32 flags)
 {
 	s32 ret;
-	static u32 params[3] ATTRIBUTE_ALIGN(32);
-
+	ALIGN_ARRAY(u32, params, 3);
+//	if (cmd != F_GETFL && cmd != F_SETFL) return -EINVAL;
+	
 	params[0] = s;
 	params[1] = cmd;
-	params[2] = (u32) argp;
+	params[2] = flags;
 
-	ret = IOS_Ioctl(net_ip_top_fd, IOCTL_SO_FCNTL, params, sizeof params, NULL, 0);
+	ret = IOS_Ioctl(net_ip_top_fd, IOCTL_SO_FCNTL, params, 12, NULL, 0);
 
-	debug_printf("net_ioctl(%d, %d, %x)=%d\n", 
+	debug_printf("net_fcntl(%d, %d, %x)=%d\n", 
        			params[0], params[1], params[2], ret);
 
 	return ret;
