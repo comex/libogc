@@ -39,8 +39,21 @@ distribution.
 
 static int __conf_inited = 0;
 static u8 __conf_buffer[0x4000] ATTRIBUTE_ALIGN(32);
+static char __conf_txt_buffer[0x101] ATTRIBUTE_ALIGN(32);
 
 static const char __conf_file[] ATTRIBUTE_ALIGN(32) = "/shared2/sys/SYSCONF";
+static const char __conf_txt_file[] ATTRIBUTE_ALIGN(32) = "/title/00000001/00000002/data/setting.txt";
+
+void __CONF_DecryptTextBuffer(void)
+{
+	u32 key = 0x73B5DBFA;
+	int i;
+	
+	for(i=0; i<0x100; i++) {
+		__conf_txt_buffer[i] ^= key & 0xff;
+		key = (key<<1) | (key>>31);
+	}
+}
 
 s32 CONF_Init(void)
 {
@@ -53,14 +66,56 @@ s32 CONF_Init(void)
 	if(fd < 0) return fd;
 	
 	memset(__conf_buffer,0,0x4000);
+	memset(__conf_txt_buffer,0,0x101);
 	
 	ret = IOS_Read(fd, __conf_buffer, 0x4000);
 	IOS_Close(fd);
 	if(ret != 0x4000) return CONF_EBADFILE;
 		
+	fd = IOS_Open(__conf_txt_file,1);
+	if(fd < 0) return fd;
+	
+	ret = IOS_Read(fd, __conf_txt_buffer, 0x100);
+	IOS_Close(fd);
+	if(ret != 0x100) return CONF_EBADFILE;
+	
 	if(memcmp(__conf_buffer, "SCv0", 4)) return CONF_EBADFILE;
+	
+	__CONF_DecryptTextBuffer();
+	
 	__conf_inited = 1;
 	return 0;
+}
+
+int __CONF_GetTxt(const char *name, char *buf, int length)
+{
+	char *line = __conf_txt_buffer;
+	char *delim, *end;
+	int slen;
+	int nlen = strlen(name);
+	
+	while(line < (__conf_txt_buffer+0x100) ) {
+		delim = strchr(line, '=');
+		if(delim && ((delim - line) == nlen) && !memcmp(name, line, nlen)) {
+			delim++;
+			end = strchr(line, '\r');
+			if(end) {
+				slen = end - delim;
+				if(slen < length) {
+					memcpy(buf, delim, slen);
+					buf[slen] = 0;
+					return slen;
+				} else {
+					return CONF_ETOOBIG;
+				}
+			}
+		}
+		
+		// skip to line end
+		while(line < (__conf_txt_buffer+0x100) && *line++ != '\r');
+		line++; //skip \n
+	}
+	return CONF_ENOENT;
 }
 
 u8 *__CONF_Find(const char *name)
@@ -378,6 +433,54 @@ s32 CONF_GetWirelessConnection(void)
 	if(res < 0) return res;
 	if(res!=4) return CONF_EBADVALUE;
 	return val;
+}
+
+s32 CONF_GetRegion(void)
+{
+	int res;
+	char buf[3];
+
+	res = __CONF_GetTxt("GAME", buf, 3);
+	if(res < 0) return res;
+	if(!strcmp(buf, "JP")) return CONF_REGION_JP;
+	if(!strcmp(buf, "US")) return CONF_REGION_US;
+	if(!strcmp(buf, "EU")) return CONF_REGION_EU;
+	return CONF_EBADVALUE;
+}
+
+s32 CONF_GetArea(void)
+{
+	int res;
+	char buf[4];
+
+	res = __CONF_GetTxt("AREA", buf, 4);
+	if(res < 0) return res;
+	if(!strcmp(buf, "JPN")) return CONF_AREA_JPN;
+	if(!strcmp(buf, "USA")) return CONF_AREA_USA;
+	if(!strcmp(buf, "EUR")) return CONF_AREA_EUR;
+	if(!strcmp(buf, "AUS")) return CONF_AREA_AUS;
+	if(!strcmp(buf, "BRA")) return CONF_AREA_BRA;
+	if(!strcmp(buf, "TWN")) return CONF_AREA_TWN;
+	if(!strcmp(buf, "ROC")) return CONF_AREA_ROC;
+	if(!strcmp(buf, "KOR")) return CONF_AREA_KOR;
+	if(!strcmp(buf, "HKG")) return CONF_AREA_HKG;
+	if(!strcmp(buf, "ASI")) return CONF_AREA_ASI;
+	if(!strcmp(buf, "LTN")) return CONF_AREA_LTN;
+	if(!strcmp(buf, "SAF")) return CONF_AREA_SAF;
+	return CONF_EBADVALUE;
+}
+
+s32 CONF_GetVideo(void)
+{
+	int res;
+	char buf[5];
+
+	res = __CONF_GetTxt("VIDEO", buf, 5);
+	if(res < 0) return res;
+	if(!strcmp(buf, "NTSC")) return CONF_VIDEO_NTSC;
+	if(!strcmp(buf, "PAL")) return CONF_VIDEO_PAL;
+	if(!strcmp(buf, "MPAL")) return CONF_VIDEO_MPAL;
+	return CONF_EBADVALUE;
 }
 
 #endif
