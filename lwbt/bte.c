@@ -11,7 +11,6 @@
 #include "hci.h"
 #include "l2cap.h"
 #include "btmemb.h"
-#include "bte_msg.h"
 #include "physbusif.h"
 
 
