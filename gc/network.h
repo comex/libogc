@@ -256,12 +256,6 @@ s32 net_shutdown(s32 s, u32 how);
 
 struct hostent * net_gethostbyname(char *addrString);
 
-#if defined(HW_RVL)
-
-s32 net_shutdown(s32 s, u32 how);
-
-#endif
-
 #ifdef __cplusplus
 	}
 #endif
