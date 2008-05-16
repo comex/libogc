@@ -71,7 +71,7 @@ s32 CONF_Init(void)
 	ret = IOS_Read(fd, __conf_buffer, 0x4000);
 	IOS_Close(fd);
 	if(ret != 0x4000) return CONF_EBADFILE;
-		
+	
 	fd = IOS_Open(__conf_txt_file,1);
 	if(fd < 0) return fd;
 	
@@ -93,6 +93,8 @@ int __CONF_GetTxt(const char *name, char *buf, int length)
 	char *delim, *end;
 	int slen;
 	int nlen = strlen(name);
+	
+	if(!__conf_inited) return CONF_ENOTINIT;
 	
 	while(line < (__conf_txt_buffer+0x100) ) {
 		delim = strchr(line, '=');
