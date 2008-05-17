@@ -27,7 +27,6 @@ distribution.
 
 #if defined(HW_RVL)
 
-
 #define MAX_IP_RETRIES 100
 
 //#define DEBUG_NET
@@ -49,6 +48,7 @@ distribution.
 #include "processor.h"
 #include "network.h"
 #include "ogcsys.h"
+
 enum {
 	IOCTL_SO_ACCEPT	= 1,
 	IOCTL_SO_BIND,   
@@ -120,9 +120,11 @@ s32 NCDGetLinkStatus(void) {
 	s32 ncd_fd = _open_manage_fd();
 	ALIGN_ARRAY(u8, linkinfo, 0x20);
   
+	if (ncd_fd < 0) return ncd_fd;
+	
 	ret = IOS_IoctlvFormat(__net_hid, ncd_fd, IOCTL_NCD_GETLINKSTATUS, 
 		":d", linkinfo, 0x20);
-
+	IOS_Close(ncd_fd);
   	if (ret < 0) debug_printf("NCDGetLinkStatus returned error %d\n", ret);
 
 	return ret;
@@ -151,6 +153,7 @@ u32 net_gethostip(void)
 	u32 ip_addr=0;
 	int retries;
 
+	if (net_ip_top_fd < 0) return 0;
 	for (retries=0, ip_addr=0; !ip_addr && retries < MAX_IP_RETRIES; retries++) {
 		ip_addr = IOS_Ioctl(net_ip_top_fd, IOCTL_SO_GETHOSTID, 0, 0, 0, 0);
 		debug_printf("."); fflush(stdout);
@@ -164,31 +167,34 @@ s32 net_init(void)
 {
 	s32 ret;
 
+	if (net_ip_top_fd >= 0) return 0;
+	
 	ret = NCDGetLinkStatus();  // this must be called as part of initialization
 	if (ret < 0) {
 		debug_printf("NCDGetLinkStatus returned %d\n", ret);
 		return ret;
 	}
 	
-	__net_hid = iosCreateHeap(0x2000);
+	if (__net_hid == -1) __net_hid = iosCreateHeap(0x2000);
 	if (__net_hid < 0) return __net_hid;
 	
 	net_ip_top_fd = IOS_Open(__iptop_fs, 0);
 	if (net_ip_top_fd < 0) {
 		debug_printf("IOS_Open(/dev/net/ip/top)=%d\n", net_ip_top_fd);
-		return net_ip_top_fd;
+		ret = net_ip_top_fd;
+		goto done;
 	}
 
 	ret = NWC24iStartupSocket(); // this must also be called during init
 	if (ret < 0) {
 		debug_printf("NWC24iStartupSocket returned %d\n", ret);
-		return ret;
+		goto done;
 	}
 
 	ret = IOS_Ioctl(net_ip_top_fd, IOCTL_SO_STARTUP, 0, 0, 0, 0);
 	if (ret < 0) {
 		debug_printf("IOCTL_SO_STARTUP returned %d\n", ret);
-		return ret;
+		goto done;
 	}
 
 	u32 ip_addr=0;
@@ -201,37 +207,38 @@ s32 net_init(void)
 
 	if (!ip_addr) {
 		debug_printf("Unable to obtain IP address\n");
-		return -ETIMEDOUT;
+		ret = -ETIMEDOUT;
+		goto done;
 	}
 
 	debug_printf(" %d.%d.%d.%d\n",
 	       octets[0], octets[1], octets[2], octets[3]);
-
+done:
 	return ret;	
 }
 
 
-/* Returned value is an allocated buffer; the caller must free after using */
+/* Returned value is a static buffer -- this function is not threadsafe! */
 struct hostent * net_gethostbyname(char *addrString)
 {
 	s32 ret, len, i;
-	u8 *params, *ipBuffer;
+	u8 *params;
 	struct hostent *ipData;
 	u32 addrOffset;
 
-	ipBuffer = iosAlloc(__net_hid, 0x460);
-	if (ipBuffer==NULL) {
-		errno = IPC_ENOMEM;
-		return NULL;
-	}
+	static u8 ipBuffer[0x460] ATTRIBUTE_ALIGN(32);
 
 	memset(ipBuffer, 0, 0x460);
 
+	if (net_ip_top_fd < 0) {
+		errno = -ENXIO;
+		return NULL;
+	}
+	
 	len = strlen(addrString) + 1;
 	params = iosAlloc(__net_hid, len);
 	if (params==NULL) {
 		errno = IPC_ENOMEM;
-		iosFree(__net_hid, ipBuffer);
 		return NULL;
 	}
 
@@ -269,6 +276,8 @@ struct hostent * net_gethostbyname(char *addrString)
 
 s32 net_socket(u32 domain, u32 type, u32 protocol)
 {
+	if (net_ip_top_fd < 0) return -ENXIO;
+
 	s32 ret;
 	ALIGN_ARRAY(u32, params, 3);
 	params[0] = domain;
@@ -283,15 +292,17 @@ s32 net_socket(u32 domain, u32 type, u32 protocol)
 
 s32 net_shutdown(s32 s, u32 how)
 {
-       s32 ret;
-       ALIGN_ARRAY(u32, params, 2);
-       params[0] = s;
-       params[1] = how;
+	if (net_ip_top_fd < 0) return -ENXIO;
 
-       ret = IOS_Ioctl(net_ip_top_fd, IOCTL_SO_SHUTDOWN, 
+	s32 ret;
+	ALIGN_ARRAY(u32, params, 2);
+	params[0] = s;
+	params[1] = how;
+
+	ret = IOS_Ioctl(net_ip_top_fd, IOCTL_SO_SHUTDOWN, 
                        params, 8, NULL, 0);
-       debug_printf("net_shutdown(%d, %d)=%d\n", s, how, ret);
-       return ret;             
+	debug_printf("net_shutdown(%d, %d)=%d\n", s, how, ret);
+	return ret;             
 }
 
 struct bind_params {
@@ -302,13 +313,16 @@ struct bind_params {
 
 s32 net_bind(s32 s, struct sockaddr *name, socklen_t namelen)
 {
+	if (net_ip_top_fd < 0) return -ENXIO;
+
 	s32 ret;
+
+	if (name->sa_family != AF_INET) return -EAFNOSUPPORT;
+	//if (namelen < 8) return -EINVAL;
 	struct bind_params *params = iosAlloc(__net_hid, sizeof(struct bind_params));
 	if (!params) return IPC_ENOMEM;
 
 	name->sa_len = 8;
-	if (name->sa_family != AF_INET) return -EAFNOSUPPORT;
-	//if (namelen < 8) return -EINVAL;
 
 	memset(params, 0, sizeof(struct bind_params));
 	params->socket = s;
@@ -323,6 +337,8 @@ s32 net_bind(s32 s, struct sockaddr *name, socklen_t namelen)
 
 s32 net_listen(s32 s, u32 backlog)
 {
+	if (net_ip_top_fd < 0) return -ENXIO;
+
 	s32 ret;
 	ALIGN_ARRAY(u32, params, 2);
 
@@ -339,6 +355,8 @@ s32 net_listen(s32 s, u32 backlog)
 
 s32 net_accept(s32 s, struct sockaddr *addr, socklen_t *addrlen)
 {
+	if (net_ip_top_fd < 0) return -ENXIO;
+
 	s32 ret;
 	ALIGN_ARRAY(u32, _socket, 1);
 	debug_printf("net_accept()\n");
@@ -377,12 +395,16 @@ struct connect_params {
 
 s32 net_connect(s32 s, struct sockaddr *addr, socklen_t addrlen)
 {
+	if (net_ip_top_fd < 0) return -ENXIO;
+
 	s32 ret;
-	struct connect_params *params = iosAlloc(__net_hid, sizeof(struct connect_params));
-	if (!params) return IPC_ENOMEM;
-		
+			
 	if (addr->sa_family != AF_INET) return -EAFNOSUPPORT;
 	if (addrlen < 8) return -EINVAL;
+
+	struct connect_params *params = iosAlloc(__net_hid, sizeof(struct connect_params));
+	if (!params) return IPC_ENOMEM;
+
 	addr->sa_len = 8;
 
 	memset(params, 0, sizeof(struct connect_params));
@@ -420,6 +442,8 @@ struct sendto_params {
 s32 net_sendto(s32 s, const void *data, s32 len, u32 flags, 
 				struct sockaddr *to, socklen_t tolen)
 {
+	if (net_ip_top_fd < 0) return -ENXIO;
+
 	s32 ret;
 	if (tolen > 28) return -EOVERFLOW;
 
@@ -470,6 +494,8 @@ s32 net_recv(s32 s, void *mem, s32 len, u32 flags)
 s32 net_recvfrom(s32 s, void *mem, s32 len, u32 flags,
 	struct sockaddr *from, socklen_t *fromlen)
 {
+	if (net_ip_top_fd < 0) return -ENXIO;
+
 	s32 ret;
 
 	ALIGN_ARRAY(u32, params, 2);
@@ -524,6 +550,8 @@ s32 net_read(s32 s, void *mem, s32 len)
 
 s32 net_close(s32 s)
 {
+	if (net_ip_top_fd < 0) return -ENXIO;
+
 	s32 ret;
 	ALIGN_ARRAY(u32, _socket, 1);
 
@@ -554,6 +582,7 @@ struct setsockopt_params {
 s32 net_setsockopt(s32 s, u32 level, u32 optname, 
 		const void *optval, socklen_t optlen)
 {
+	if (net_ip_top_fd < 0) return -ENXIO;
 	s32 ret;
 
 	if (optlen < 0 || optlen > 20) return -EINVAL;
@@ -577,16 +606,31 @@ s32 net_setsockopt(s32 s, u32 level, u32 optname,
 	return ret;
 }
 
+#define IOS_O_NONBLOCK (O_NONBLOCK >> 16)
 s32 net_ioctl(s32 s, u32 cmd, void *argp) {
-	return -EINVAL;
+	u32 *intp = (u32 *)argp;
+	u32 flags;
+	if (net_ip_top_fd < 0) return -ENXIO;
+	if (!intp) return -EINVAL;
+	switch (cmd) {
+		case FIONBIO: 
+			flags = net_fcntl(s, F_GETFL, 0);
+			flags &= ~IOS_O_NONBLOCK;
+			if (*intp) flags |= IOS_O_NONBLOCK;
+			return net_fcntl(s, F_SETFL, flags);
+		default:
+			return -EINVAL;
+	}
 }
 
 
 s32 net_fcntl(s32 s, u32 cmd, u32 flags)
 {
+	if (net_ip_top_fd < 0) return -ENXIO;
+
 	s32 ret;
 	ALIGN_ARRAY(u32, params, 3);
-//	if (cmd != F_GETFL && cmd != F_SETFL) return -EINVAL;
+	if (cmd != F_GETFL && cmd != F_SETFL) return -EINVAL;
 	
 	params[0] = s;
 	params[1] = cmd;
@@ -603,6 +647,7 @@ s32 net_fcntl(s32 s, u32 cmd, u32 flags)
 
 s32 if_config(char *local_ip, char *netmask, char *gateway,boolean use_dhcp)
 {
+	if (net_ip_top_fd < 0) return -ENXIO;
 
 	if ( use_dhcp != true ) return -1;
 	if ( net_init() < 0 ) return -1;
