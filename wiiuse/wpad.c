@@ -451,17 +451,17 @@ u32 WPAD_ScanPads()
 	return connected;		
 }
 
-u32 WPAD_ButtonsUp(int pad) {
+u16 WPAD_ButtonsUp(int pad) {
 	if(pad<0 || pad>MAX_WIIMOTES) return 0;
-	return ( wpaddata[pad].btns_d ^ (~wpaddata[pad].btns_l));
+	return (~wpaddata[pad].btns_d & (wpaddata[pad].btns_l));
 }
 
-u32 WPAD_ButtonsDown(int pad) {
+u16 WPAD_ButtonsDown(int pad) {
 	if(pad<0 || pad>MAX_WIIMOTES) return 0;
 	return ( wpaddata[pad].btns_d & ~ wpaddata[pad].btns_l);
 }
 
-u32 WPAD_ButtonsHeld(int pad) {
+u16 WPAD_ButtonsHeld(int pad) {
 	if(pad<0 || pad>MAX_WIIMOTES) return 0;
 	return wpaddata[pad].btns_d;
 }
