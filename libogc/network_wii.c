@@ -103,12 +103,89 @@ static char __manage_fs[] ATTRIBUTE_ALIGN(32) = "/dev/net/ncd/manage";
 static char __iptop_fs[] ATTRIBUTE_ALIGN(32) = "/dev/net/ip/top";
 static char __kd_fs[] ATTRIBUTE_ALIGN(32) = "/dev/net/kd/request";
 
+// 0 means we don't know what this error code means
+// I sense a pattern here...
+u8 _net_error_code_map[] = {
+	0, // 0
+	0, 
+	0, 
+	0,
+	0, 
+	0, // 5
+	EAGAIN, 
+	EALREADY,
+	EBADFD,
+	0,
+	0, // 10
+	0,
+	0,
+	0,
+	0,
+	0, // 15
+	0,
+	0,
+	0,
+	0,
+	0, // 20
+	0,
+	0,
+	0,
+	0,
+	0, // 25
+	EINPROGRESS,
+	0,
+	0,
+	0,
+	EISCONN, // 30
+	0,
+	0,
+	0,
+	0,
+	0, // 35
+	0,
+	0,
+	0,
+	0,
+	0, // 40
+	0,
+	0,
+	0,
+	0,
+	0, // 45
+	0,
+	0,
+	0,
+	0,
+	0, // 50
+	0,
+	0,
+	0,
+	0,
+	0, // 55
+	0,
+	0,
+	0,
+	0,
+	0, // 60
+};
+
+#define NET_UNKNOWN_ERROR_OFFSET -10000
+static s32 _net_convert_error(s32 ios_retval)
+{
+//	return ios_retval;
+	if (ios_retval >= 0) return ios_retval;
+	if (ios_retval < -sizeof(_net_error_code_map)
+		|| !_net_error_code_map[-ios_retval])
+			return NET_UNKNOWN_ERROR_OFFSET + ios_retval;
+	return -_net_error_code_map[-ios_retval];
+}
+
 static s32 _open_manage_fd(void)
 {
 	s32 ncd_fd;
 
 	do {
-		ncd_fd = IOS_Open(__manage_fs, 0);
+		ncd_fd = _net_convert_error(IOS_Open(__manage_fs, 0));
 		if (ncd_fd < 0) usleep(100000);
 	} while(ncd_fd == IPC_ENOENT);
 
@@ -122,8 +199,8 @@ s32 NCDGetLinkStatus(void) {
   
 	if (ncd_fd < 0) return ncd_fd;
 	
-	ret = IOS_IoctlvFormat(__net_hid, ncd_fd, IOCTL_NCD_GETLINKSTATUS, 
-		":d", linkinfo, 0x20);
+	ret = _net_convert_error(IOS_IoctlvFormat(__net_hid, ncd_fd, IOCTL_NCD_GETLINKSTATUS, 
+		":d", linkinfo, 0x20));
 	IOS_Close(ncd_fd);
   	if (ret < 0) debug_printf("NCDGetLinkStatus returned error %d\n", ret);
 
@@ -135,14 +212,14 @@ static s32 NWC24iStartupSocket(void)
 	s32 kd_fd, ret;
 	ALIGN_ARRAY(u8, kd_buf, 0x20);
 	
-	kd_fd = IOS_Open(__kd_fs, 0);
+	kd_fd = _net_convert_error(IOS_Open(__kd_fs, 0));
 	if (kd_fd < 0) {
 		debug_printf("IOS_Open(%s) failed with code %d\n", __kd_fs, kd_fd);
 		return kd_fd;
 	}
   
-	ret = IOS_Ioctl(kd_fd, IOCTL_NWC24_STARTUP,
-		  	NULL, 0, kd_buf, 0x20);
+	ret = _net_convert_error(IOS_Ioctl(kd_fd, IOCTL_NWC24_STARTUP,
+		  	NULL, 0, kd_buf, 0x20));
 	if (ret < 0) debug_printf("IOS_Ioctl(6)=%d\n", ret);
   	IOS_Close(kd_fd);
   	return ret;
@@ -178,7 +255,7 @@ s32 net_init(void)
 	if (__net_hid == -1) __net_hid = iosCreateHeap(0x2000);
 	if (__net_hid < 0) return __net_hid;
 	
-	net_ip_top_fd = IOS_Open(__iptop_fs, 0);
+	net_ip_top_fd = _net_convert_error(IOS_Open(__iptop_fs, 0));
 	if (net_ip_top_fd < 0) {
 		debug_printf("IOS_Open(/dev/net/ip/top)=%d\n", net_ip_top_fd);
 		ret = net_ip_top_fd;
@@ -191,7 +268,7 @@ s32 net_init(void)
 		goto done;
 	}
 
-	ret = IOS_Ioctl(net_ip_top_fd, IOCTL_SO_STARTUP, 0, 0, 0, 0);
+	ret = _net_convert_error(IOS_Ioctl(net_ip_top_fd, IOCTL_SO_STARTUP, 0, 0, 0, 0));
 	if (ret < 0) {
 		debug_printf("IOCTL_SO_STARTUP returned %d\n", ret);
 		goto done;
@@ -244,8 +321,8 @@ struct hostent * net_gethostbyname(char *addrString)
 
 	memcpy(params, addrString, len);
 
-	ret = IOS_Ioctl(net_ip_top_fd, IOCTL_SO_GETHOSTBYNAME, 
-					params, len, ipBuffer, 0x460);
+	ret = _net_convert_error(IOS_Ioctl(net_ip_top_fd, IOCTL_SO_GETHOSTBYNAME, 
+					params, len, ipBuffer, 0x460));
 
 	iosFree(__net_hid, params);
 
@@ -284,8 +361,8 @@ s32 net_socket(u32 domain, u32 type, u32 protocol)
 	params[1] = type;
 	params[2] = protocol;
 
-	ret = IOS_Ioctl(net_ip_top_fd, IOCTL_SO_SOCKET, 
-		     	params, 12, NULL, 0);
+	ret = _net_convert_error(IOS_Ioctl(net_ip_top_fd, IOCTL_SO_SOCKET, 
+		     	params, 12, NULL, 0));
 	debug_printf("net_socket(%d, %d, %d)=%d\n", domain, type, protocol, ret);
 	return ret;		
 }
@@ -299,8 +376,8 @@ s32 net_shutdown(s32 s, u32 how)
 	params[0] = s;
 	params[1] = how;
 
-	ret = IOS_Ioctl(net_ip_top_fd, IOCTL_SO_SHUTDOWN, 
-                       params, 8, NULL, 0);
+	ret = _net_convert_error(IOS_Ioctl(net_ip_top_fd, IOCTL_SO_SHUTDOWN, 
+                       params, 8, NULL, 0));
 	debug_printf("net_shutdown(%d, %d)=%d\n", s, how, ret);
 	return ret;             
 }
@@ -329,7 +406,7 @@ s32 net_bind(s32 s, struct sockaddr *name, socklen_t namelen)
 	params->has_name = 1;
 	memcpy(params->name, name, 8);
 
-	ret = IOS_Ioctl(net_ip_top_fd, IOCTL_SO_BIND, params, sizeof (struct bind_params), NULL, 0);
+	ret = _net_convert_error(IOS_Ioctl(net_ip_top_fd, IOCTL_SO_BIND, params, sizeof (struct bind_params), NULL, 0));
 	iosFree(__net_hid, params);
 	debug_printf("net_bind(%d, %p)=%d\n", s, name, ret);
 	return ret;
@@ -348,14 +425,14 @@ s32 net_listen(s32 s, u32 backlog)
 	debug_printf("calling ios_ioctl(%d, %d, %p, %d)\n", 
 		net_ip_top_fd, IOCTL_SO_SOCKET, params, 8);
 
-	ret = IOS_Ioctl(net_ip_top_fd, IOCTL_SO_LISTEN, params, 8, NULL, 0);
+	ret = _net_convert_error(IOS_Ioctl(net_ip_top_fd, IOCTL_SO_LISTEN, params, 8, NULL, 0));
   	debug_printf("net_listen(%d, %d)=%d\n", s, backlog, ret);
 	return ret;	
 }
 
 s32 net_accept(s32 s, struct sockaddr *addr, socklen_t *addrlen)
 {
-	if (net_ip_top_fd < 0) return -ENXIO;
+//	if (net_ip_top_fd < 0) return -ENXIO;
 
 	s32 ret;
 	ALIGN_ARRAY(u32, _socket, 1);
@@ -380,8 +457,8 @@ s32 net_accept(s32 s, struct sockaddr *addr, socklen_t *addrlen)
 	*_socket = s;
 	debug_printf("calling ios_ioctl(%d, %d, %p, %d)\n", 
 		net_ip_top_fd, IOCTL_SO_ACCEPT, _socket, 4);
-	ret = IOS_Ioctl(net_ip_top_fd, IOCTL_SO_ACCEPT,
-						_socket, 4, addr, *addrlen);
+	ret = _net_convert_error(IOS_Ioctl(net_ip_top_fd, IOCTL_SO_ACCEPT,
+						_socket, 4, addr, *addrlen));
 
 	debug_printf("net_accept(%d, %p)=%d\n", s, addr, ret);
 	return ret;
@@ -412,8 +489,8 @@ s32 net_connect(s32 s, struct sockaddr *addr, socklen_t addrlen)
 	params->has_addr = 1;
 	memcpy(params->addr, addr, addrlen);
 
-	ret = IOS_Ioctl(net_ip_top_fd, IOCTL_SO_CONNECT, params, 
-					sizeof(struct connect_params), NULL, 0);
+	ret = _net_convert_error(IOS_Ioctl(net_ip_top_fd, IOCTL_SO_CONNECT, params, 
+					sizeof(struct connect_params), NULL, 0));
 	if (ret < 0) {
     	debug_printf("SOConnect(%d, %p)=%d\n", s, addr, ret);
 	}
@@ -478,8 +555,8 @@ s32 net_sendto(s32 s, const void *data, s32 len, u32 flags,
 		params->has_destaddr = 0;
 	}
 
-	ret = IOS_IoctlvFormat(__net_hid, net_ip_top_fd, IOCTLV_SO_SENDTO,
-		       "dd:", message_buf, len, params, sizeof(struct sendto_params));
+	ret = _net_convert_error(IOS_IoctlvFormat(__net_hid, net_ip_top_fd, IOCTLV_SO_SENDTO,
+		       "dd:", message_buf, len, params, sizeof(struct sendto_params)));
 	debug_printf("net_send retuned %d\n", ret);
 	iosFree(__net_hid, message_buf);
 	iosFree(__net_hid, params);
@@ -521,9 +598,9 @@ s32 net_recvfrom(s32 s, void *mem, s32 len, u32 flags,
 	params[0] = s;
 	params[1] = flags;
 
-	ret = IOS_IoctlvFormat(__net_hid, net_ip_top_fd, IOCTLV_SO_RECVFROM,
+	ret = _net_convert_error(IOS_IoctlvFormat(__net_hid, net_ip_top_fd, IOCTLV_SO_RECVFROM,
 		       	"d:dd", params, 8, message_buf, 
-				len, from, fromlen?*fromlen:0);
+				len, from, fromlen?*fromlen:0));
 	debug_printf("net_recvfrom returned %d\n", ret);
 
 	if (ret > 0) {
@@ -556,8 +633,8 @@ s32 net_close(s32 s)
 	ALIGN_ARRAY(u32, _socket, 1);
 
 	*_socket = s;
-	ret = IOS_Ioctl(net_ip_top_fd, IOCTL_SO_CLOSE, 
-		_socket, 4, NULL, 0);
+	ret = _net_convert_error(IOS_Ioctl(net_ip_top_fd, IOCTL_SO_CLOSE, 
+		_socket, 4, NULL, 0));
 
 	if (ret < 0) debug_printf("net_close(%d)=%d\n", s, ret);
 
@@ -597,8 +674,8 @@ s32 net_setsockopt(s32 s, u32 level, u32 optname,
 	params->optlen = optlen;
 	if (optval && optlen) memcpy (params->optval, optval, optlen);
 
-	ret = IOS_Ioctl(net_ip_top_fd, IOCTL_SO_SETSOCKOPT,
-		     	params, sizeof(struct setsockopt_params), NULL, 0);
+	ret = _net_convert_error(IOS_Ioctl(net_ip_top_fd, IOCTL_SO_SETSOCKOPT,
+		     	params, sizeof(struct setsockopt_params), NULL, 0));
 
 	debug_printf("net_setsockopt(%d, %u, %u, %p, %d)=%d\n",
 				s, level, optname, optval, optlen, ret);
@@ -636,7 +713,7 @@ s32 net_fcntl(s32 s, u32 cmd, u32 flags)
 	params[1] = cmd;
 	params[2] = flags;
 
-	ret = IOS_Ioctl(net_ip_top_fd, IOCTL_SO_FCNTL, params, 12, NULL, 0);
+	ret = _net_convert_error(IOS_Ioctl(net_ip_top_fd, IOCTL_SO_FCNTL, params, 12, NULL, 0));
 
 	debug_printf("net_fcntl(%d, %d, %x)=%d\n", 
        			params[0], params[1], params[2], ret);
