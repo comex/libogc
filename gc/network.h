@@ -233,10 +233,10 @@ u32 inet_addr(const char *cp);
 s8 inet_aton(const char *cp, struct in_addr *addr);
 char *inet_ntoa(struct in_addr addr); /* returns ptr to static buffer; not reentrant! */
 
-s32 if_config( char *local_ip, char *netmask, char *gateway,boolean use_dhcp);
+s32 if_config(char *local_ip, char *netmask, char *gateway,boolean use_dhcp);
 s32 if_configex(struct in_addr *local_ip,struct in_addr *netmask,struct in_addr *gateway,boolean use_dhcp);
 
-s32 net_init();
+s32 net_init(void);
 s32 net_socket(u32 domain,u32 type,u32 protocol);
 s32 net_bind(s32 s,struct sockaddr *name,socklen_t namelen);
 s32 net_listen(s32 s,u32 backlog);
@@ -252,9 +252,13 @@ s32 net_close(s32 s);
 s32 net_select(s32 maxfdp1,fd_set *readset,fd_set *writeset,fd_set *exceptset,struct timeval *timeout);
 s32 net_setsockopt(s32 s,u32 level,u32 optname,const void *optval,socklen_t optlen);
 s32 net_ioctl(s32 s, u32 cmd, void *argp);
-s32 net_shutdown(s32 s, u32 how);
 
+#if defined(HW_RVL)
+s32 net_fcntl(s32 s, u32 cmd, u32 flags);
 struct hostent * net_gethostbyname(char *addrString);
+s32 net_shutdown(s32 s, u32 how);
+u32 net_gethostip(void);
+#endif
 
 #ifdef __cplusplus
 	}
