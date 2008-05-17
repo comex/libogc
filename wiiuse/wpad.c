@@ -9,13 +9,14 @@
 #include "wiiuse_internal.h"
 #include "wiiuse/wpad.h"
 
-#define MAX_RINGBUFS			250
+#define MAX_RINGBUFS			2
 
-static u32 __wpads_inited = 0;
-static s32 __wpads_ponded = 0;
-static u32 __wpads_connected = 0;
-static s32 __wpads_registered = 0;
+static vu32 __wpads_inited = 0;
+static vs32 __wpads_ponded = 0;
+static vu32 __wpads_connected = 0;
+static vs32 __wpads_registered = 0;
 static wiimote **__wpads = NULL;
+static WPADData wpaddata[MAX_WIIMOTES];
 static s32 __wpad_samplingbufs_idx[MAX_WIIMOTES];
 static conf_pad_device __wpad_devs[MAX_WIIMOTES];
 static u32 __wpad_max_autosamplingbufs[MAX_WIIMOTES];
@@ -47,9 +48,9 @@ static s32 __wpad_patch_finished(s32 result,void *usrdata)
 {
 	//printf("__wpad_patch_finished(%d)\n",result);
 
-	if(result==ERR_OK) {
+	//if(result==ERR_OK) {
 		BTE_InitSub(__wpad_init_finished);
-	}
+	//}
 	return ERR_OK;
 }
 
@@ -94,7 +95,9 @@ static void __wpad_read_expansion(struct wiimote_t *wm,WPADData *data)
 			Nunchaku *nc = &data->exp.nunchuk;
 			struct nunchuk_t *wmnc = &wm->exp.nunchuk;
 
-			nc->btns_h = wmnc->btns;
+			nc->btns_d = wmnc->btns;
+			nc->btns_h = wmnc->btns_held;
+			nc->btns_r = wmnc->btns_released;
 			
 			nc->accel.x = wmnc->accel.x;
 			nc->accel.y = wmnc->accel.y;
@@ -117,7 +120,9 @@ static void __wpad_read_expansion(struct wiimote_t *wm,WPADData *data)
 			Classic *cc = &data->exp.classic;
 			struct classic_ctrl_t *wmcc = &wm->exp.classic;
 
-			cc->btns_h = wmcc->btns;
+			cc->btns_d = wmcc->btns;
+			cc->btns_h = wmcc->btns_held;
+			cc->btns_r = wmcc->btns_released;
 
 			cc->r_shoulder = wmcc->r_shoulder;
 			cc->l_shoulder = wmcc->l_shoulder;
@@ -142,7 +147,9 @@ static void __wpad_read_wiimote(struct wiimote_t *wm,WPADData *data)
 	data->err = WPAD_ERR_TRANSFER;
 	if(wm && WIIMOTE_IS_SET(wm,WIIMOTE_STATE_CONNECTED)) {
 		if(WIIMOTE_IS_SET(wm,WIIMOTE_STATE_HANDSHAKE_COMPLETE)) {
-			data->btns_h = wm->btns;
+			data->btns_d = wm->btns;
+			data->btns_h = wm->btns_held;
+			data->btns_r = wm->btns_released;
 
 			if(WIIMOTE_IS_SET(wm,WIIMOTE_STATE_ACC)) {
 				data->accel.x = wm->accel.x;
@@ -218,7 +225,7 @@ static void __wpad_eventCB(struct wiimote_t *wm,s32 event)
 			__wpads_connected |= (0x01<<(wm->unid-1));
 			break;
 		case WIIUSE_DISCONNECT:
-			//printf("wiimote disconnected\n");
+			printf("wiimote disconnected\n");
 			__wpad_samplingCB[(wm->unid-1)] = NULL;
 			__wpad_samplingbufs_idx[(wm->unid-1)] = 0;
 			__wpad_autosamplingbufs[(wm->unid-1)] = NULL;
@@ -269,13 +276,14 @@ void WPAD_Read(s32 chan,WPADData *data)
 	u32 idx;
 	u32 level;
 	u32 maxbufs;
+	u16 last_buttons;
 	WPADData *wpadd = NULL;
 
 	if(chan<WPAD_CHAN_0 || chan>WPAD_CHAN_3) return;
 
 	_CPU_ISR_Disable(level);
 
-	u16 last_buttons = data->btns_h;
+	last_buttons = data->btns_d;
 	
 	memset(data,0,sizeof(WPADData));
 
@@ -409,19 +417,31 @@ u32 WPAD_GetLatestBufIndex(s32 chan)
 	return idx;
 }
 
+void WPAD_Shutdown()
+{
+	s32 i;
 
-static WPADData wpaddata[MAX_WIIMOTES];
+	printf("WPAD_Shutdown()\n");
+	for(i=0;i<MAX_WIIMOTES;i++) {
+		if(__wpads[i] && WIIMOTE_IS_SET(__wpads[i],WIIMOTE_STATE_CONNECTED)) {
+			wiiuse_disconnect(__wpads[i]);
+		}
+	}
+	while(__wpads_connected);
 
-u32 WPAD_ScanPads() {
-	static int first_scan = 1;
+	BTE_Reset();
+}
+
+u32 WPAD_ScanPads() 
+{
 	int i, connected = 0;
+	static int first_scan = 1;
 	
 
 	for ( i = 0; i < MAX_WIIMOTES; i++ ) {
 
 		if ( first_scan ) {
 			memset( &wpaddata[i], 0, sizeof(WPADData) );
-			WPAD_SetDataFormat(i,WPAD_FMT_CORE);
 		}
 		WPAD_Read( i, &wpaddata[i]);
 
@@ -433,16 +453,16 @@ u32 WPAD_ScanPads() {
 
 u32 WPAD_ButtonsUp(int pad) {
 	if(pad<0 || pad>MAX_WIIMOTES) return 0;
-	return ( wpaddata[pad].btns_h ^ (~wpaddata[pad].btns_l));
+	return ( wpaddata[pad].btns_d ^ (~wpaddata[pad].btns_l));
 }
 
 u32 WPAD_ButtonsDown(int pad) {
 	if(pad<0 || pad>MAX_WIIMOTES) return 0;
-	return ( wpaddata[pad].btns_h & ~ wpaddata[pad].btns_l);
+	return ( wpaddata[pad].btns_d & ~ wpaddata[pad].btns_l);
 }
 
 u32 WPAD_ButtonsHeld(int pad) {
 	if(pad<0 || pad>MAX_WIIMOTES) return 0;
-	return wpaddata[pad].btns_h;
+	return wpaddata[pad].btns_d;
 }
 
