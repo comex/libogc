@@ -222,9 +222,7 @@ static inline s32 __usb_interrupt_bulk_message(s32 fd,u8 ioctl,u8 bEndpoint,u16 
 	ioctlv *vec = NULL;
 	struct _usb_cb *msgcb = NULL;
 
-	if(((s32)rpData%32)!=0) return IPC_EINVAL;
-	if(wLength && !rpData) return IPC_EINVAL;
-	if(!wLength && rpData) return IPC_EINVAL;
+	if(rpData==NULL || ((s32)rpData%32)!=0) return IPC_EINVAL;
 
 	vec = iosAlloc(hId,sizeof(ioctlv)*3);
 	if(vec==NULL) return IPC_ENOMEM;
@@ -306,21 +304,12 @@ s32 USB_OpenDevice(const char *device,u16 vid,u16 pid,s32 *fd)
 
 s32 USB_CloseDevice(s32 *fd)
 {
-	s32 ret = IPC_OK;
+	s32 ret;
 
-	if(fd && *fd>=0) {
-		ret = IOS_Close(*fd);
-		if(ret>=0) *fd = -1;
-	}
+	ret = IOS_Close(*fd);
+	if(ret>=0) *fd = -1;
+
 	return ret;
-}
-
-s32 USB_CloseDeviceAsync(s32 *fd,usbcallback cb,void *usrdata)
-{
-	if(fd && *fd>=0)
-		return IOS_CloseAsync(*fd,cb,usrdata);
-
-	return IPC_OK;
 }
 
 s32 USB_GetDeviceDescription(s32 fd,usb_devdesc *devdesc)
