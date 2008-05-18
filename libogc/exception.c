@@ -48,6 +48,7 @@ distribution.
 #include "ios.h"
 
 #include "ogc/video_types.h"
+#include "wiiuse/wpad.h"
 
 //#define _EXC_DEBUG
 
@@ -244,7 +245,6 @@ void c_default_exceptionhandler(frame_context *pCtx)
 
 void __libogc_exit(int status)
 {
-	GX_AbortFrame();
 	SYS_ResetSystem(SYS_SHUTDOWN,0,0);
 	Reload();
 }

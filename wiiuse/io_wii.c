@@ -33,6 +33,7 @@ static s32 __wiiuse_disconnected(void *arg,struct bte_pcb *pcb,u8 err)
 	struct wiimote_t *wm = (struct wiimote_t*)arg;
 
 	//printf("wiimote disconnected\n");
+	WIIMOTE_DISABLE_STATE(wm,(WIIMOTE_STATE_CONNECTED|WIIMOTE_STATE_HANDSHAKE));
 	if(wm->event_cb) wm->event_cb(wm,WIIUSE_DISCONNECT);
 	return ERR_OK;
 }
@@ -136,7 +137,6 @@ int wiiuse_register(struct wiimote_t *wm,struct bd_addr *bdaddr)
 
 void wiiuse_disconnect(struct wiimote_t *wm)
 {
-	printf("wiiuse_disconnect()\n");
 	if(wm==NULL || wm->sock==NULL) return;
 
 	bte_disconnect(wm->sock);
