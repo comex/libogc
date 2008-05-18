@@ -307,11 +307,15 @@ static void __ipc_sendrequest()
 	}
 }
 
+extern void _cpu_context_save_fp(void *);
+extern void _cpu_context_restore_fp(void *);
+
 static void __ipc_replyhandler()
 {
 	u32 ipc_ack,cnt;
 	struct _ipcreq *req = NULL;
 	ioctlv *v = NULL;
+	frame_context fp_context;
 #ifdef DEBUG_IPC
 	printf("__ipc_replyhandler()\n");
 #endif
@@ -363,7 +367,9 @@ static void __ipc_replyhandler()
 		}
 
 		if(req->cb!=NULL) {
+			_cpu_context_save_fp(&fp_context);
 			req->cb(req->result,req->usrdata);
+			_cpu_context_restore_fp(&fp_context);
 			__ipc_freereq(req);
 		} else
 			LWP_ThreadSignal(req->syncqueue);
