@@ -81,8 +81,8 @@ DEFINCS		:= -I$(BASEDIR) -I$(BASEDIR)/gc
 INCLUDES	:=	$(DEFINCS) -I$(BASEDIR)/gc/netif -I$(BASEDIR)/gc/ipv4 \
 				-I$(BASEDIR)/gc/ogc -I$(BASEDIR)/gc/ogc/machine -I$(BASEDIR)/gc/tinysmb \
 				-I$(BASEDIR)/gc/modplay -I$(BASEDIR)/gc/mad \
-				-I$(BASEDIR)/gc/z -I$(BASEDIR)/gc/lwbt \
-				-I$(BASEDIR)/gc/sdcard
+				-I$(BASEDIR)/gc/z -I$(BASEDIR)/gc/bte \
+				-I$(BASEDIR)/gc/sdcard -I$(BASEDIR)/gc/wiiuse
 
 MACHDEP		:= -DBIGENDIAN -DGEKKO -mcpu=750 -meabi -msdata=eabi -mhard-float -fmodulo-sched -ffunction-sections -fdata-sections
 
@@ -175,19 +175,19 @@ ZLIBOBJ		:=	adler32.o compress.o crc32.o gzio.o uncompr.o \
 %.o : %.c
 #---------------------------------------------------------------------------------
 	@echo $(notdir $<)
-	@$(CC) -MMD -MF $(DEPSDIR)/$*.d $(CFLAGS) -Wa,-mgekko -c $< -o $@
+	@$(CC) -MMD -MP -MF $(DEPSDIR)/$*.d $(CFLAGS) -Wa,-mgekko -c $< -o $@
 
 #---------------------------------------------------------------------------------
 %.o : %.cpp
 #---------------------------------------------------------------------------------
 	@echo $(notdir $<)
-	@$(CC) -MMD -MF $(DEPSDIR)/$*.d $(CFLAGS) -Wa,-mgekko -c $< -o $@
+	@$(CC) -MMD -MP -MF $(DEPSDIR)/$*.d $(CFLAGS) -Wa,-mgekko -c $< -o $@
 
 #---------------------------------------------------------------------------------
 %.o : %.S
 #---------------------------------------------------------------------------------
 	@echo $(notdir $<)
-	@$(CC) -MMD -MF $(DEPSDIR)/$*.d $(CFLAGS) -D_LANGUAGE_ASSEMBLY -Wa,-mgekko -c $< -o $@
+	@$(CC) -MMD -MP -MF $(DEPSDIR)/$*.d $(CFLAGS) -D_LANGUAGE_ASSEMBLY -Wa,-mgekko -c $< -o $@
 
 #---------------------------------------------------------------------------------
 %.o : %.s
@@ -267,7 +267,7 @@ install-headers:
 	@cp ./gc/*.h $(INCDIR)
 	@cp ./gc/ogc/*.h $(INCDIR)/ogc
 	@cp ./gc/ogc/machine/*.h $(INCDIR)/ogc/machine
-	@cp ./gc/lwbt/*.h $(INCDIR)/bte
+	@cp ./gc/bte/*.h $(INCDIR)/bte
 	@cp ./gc/wiiuse/*.h $(INCDIR)/wiiuse
 	@cp ./gc/modplay/*.h $(INCDIR)/modplay
 	@cp ./gc/mad/*.h $(INCDIR)/mad
