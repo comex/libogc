@@ -277,6 +277,7 @@ void WPAD_Read(s32 chan,WPADData *data)
 	u32 maxbufs,smoothed = 0;
 	u32 useir = 0,useacc = 0,useexp = 0;
 	struct accel_t *accel_calib = NULL;
+	static struct orient_t last_orient = {0.0f,0.0f,0.0f,0.0f,0.0f};
 	WPADData *wpadd = NULL;
 
 	if(chan<WPAD_CHAN_0 || chan>WPAD_CHAN_3) return;
@@ -312,9 +313,15 @@ void WPAD_Read(s32 chan,WPADData *data)
 			data->err = WPAD_ERR_NOT_READY;
 	} else
 		data->err = WPAD_ERR_NO_CONTROLLER;
+	
+	data->orient = last_orient;
 	_CPU_ISR_Restore(level);
 
 	__wpad_calc_data(data,accel_calib,useacc,useir,useexp,smoothed);
+	
+	_CPU_ISR_Disable(level);
+	last_orient = data->orient;
+	_CPU_ISR_Restore(level);
 }
 
 void WPAD_SetDataFormat(s32 chan,s32 fmt)
