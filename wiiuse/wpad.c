@@ -388,8 +388,6 @@ void WPAD_Read(s32 chan,WPADData *data)
 			data->err = WPAD_ERR_NOT_READY;
 	} else
 		data->err = WPAD_ERR_NO_CONTROLLER;
-	
-	data->orient = last_orient[chan];
 	_CPU_ISR_Restore(level);
 
 	__wpad_calc_data(data,lstate,accel_calib,useacc,useir,useexp,smoothed);
