@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #include "asm.h"
 #include "processor.h"
@@ -11,6 +12,8 @@
 #include "guitar_hero_3.h"
 #include "wiiuse_internal.h"
 #include "wiiuse/wpad.h"
+#include "lwp_threads.h"
+#include "ogcsys.h"
 
 #define MAX_RINGBUFS			2
 
@@ -18,31 +21,31 @@ struct _wpad_cb {
 	wiimote *wm;
 	u32 data_fmt;
 	s32 buf_idx;
+	u32 max_bufs;
+	s32 idle_time;
+	WPADData lstate;
 	WPADData *ringbuf_ext;
 	WPADData ringbuf_int[MAX_RINGBUFS];
 	wpadsamplingcallback samplingCB;
-	struct orient_t orient;
 };
 
+static syswd_t __wpad_timer;
 static vu32 __wpads_inited = 0;
 static vs32 __wpads_ponded = 0;
-static vu32 __wpads_connected = 0;
+static u32 __wpad_sleeptime = 5;
+static vu32 __wpads_active = 0;
 static vs32 __wpads_registered = 0;
 static wiimote **__wpads = NULL;
 static WPADData wpaddata[MAX_WIIMOTES];
-static s32 __wpad_samplingbufs_idx[MAX_WIIMOTES];
-static conf_pad_device __wpad_devs[MAX_WIIMOTES];
-static u32 __wpad_max_autosamplingbufs[MAX_WIIMOTES];
-static struct linkkey_info __wpad_keys[MAX_WIIMOTES];
-static WPADData __wpad_samplingbufs[MAX_WIIMOTES][MAX_RINGBUFS];
-static WPADData *__wpad_autosamplingbufs[MAX_WIIMOTES] = {NULL,NULL,NULL,NULL};
-static wpadsamplingcallback __wpad_samplingCB[MAX_WIIMOTES] = {NULL,NULL,NULL,NULL};
-
-static u8 __wpad_active_state[MAX_WIIMOTES];
 static struct _wpad_cb __wpdcb[MAX_WIIMOTES];
+static conf_pad_device __wpad_devs[MAX_WIIMOTES];
+static struct linkkey_info __wpad_keys[MAX_WIIMOTES];
 
 static s32 __wpad_onreset(s32 final);
+static s32 __wpad_disconnect(struct _wpad_cb *wpdcb);
 static void __wpad_eventCB(struct wiimote_t *wm,s32 event);
+
+extern void __wiiuse_sensorbar_enable(int enable);
 
 static sys_resetinfo __wpad_resetinfo = {
 	{},
@@ -57,6 +60,28 @@ static s32 __wpad_onreset(s32 final)
 		WPAD_Shutdown();
 	}
 	return 1;
+}
+
+static void __wpad_timeouthandler(syswd_t alarm)
+{
+	s32 i;
+	struct wiimote_t *wm = NULL;
+	struct _wpad_cb *wpdcb = NULL;
+
+	if(!__wpads_active) return;
+
+	__lwp_thread_dispatchdisable();
+	for(i=0;i<MAX_WIIMOTES;i++) {
+		wpdcb = &__wpdcb[i];
+		wm = wpdcb->wm;
+		if(wm && WIIMOTE_IS_SET(wm,WIIMOTE_STATE_CONNECTED)) {
+			wpdcb->idle_time++;
+			if(wpdcb->idle_time>=__wpad_sleeptime) {
+				wiiuse_disconnect(wm);
+			}
+		}
+	}
+	__lwp_thread_dispatchunnest();
 }
 
 static s32 __wpad_init_finished(s32 result,void *usrdata)
@@ -103,10 +128,25 @@ static s32 __initcore_finished(s32 result,void *usrdata)
 	return ERR_OK;
 }
 
-static void __wpad_calc_data(WPADData *data,struct accel_t *accel_calib,u32 useacc,u32 useir,u32 useexp,u32 smoothed)
+static s32 __wpad_disconnect(struct _wpad_cb *wpdcb)
+{
+	struct wiimote_t *wm;
+
+	if(wpdcb==NULL) return 0;
+
+	wm = wpdcb->wm;
+	if(wm && WIIMOTE_IS_SET(wm,WIIMOTE_STATE_CONNECTED)) {
+		wiiuse_disconnect(wm);
+	}
+
+	return 0;
+}
+
+static void __wpad_calc_data(WPADData *data,WPADData *lstate,struct accel_t *accel_calib,u32 useacc,u32 useir,u32 useexp,u32 smoothed)
 {
 	if(data->err!=WPAD_ERR_NONE) return;
 
+	data->orient = lstate->orient;
 	if(useacc) {
 		calculate_orientation(accel_calib, &data->accel, &data->orient, smoothed);
 		calculate_gforce(accel_calib, &data->accel, &data->gforce);
@@ -120,6 +160,7 @@ static void __wpad_calc_data(WPADData *data,struct accel_t *accel_calib,u32 usea
 			{
 				struct nunchuk_t *nc = &data->exp.nunchuk;
 
+				nc->orient = lstate->exp.nunchuk.orient;
 				calc_joystick_state(&nc->js,nc->js.pos.x,nc->js.pos.y);
 				calculate_orientation(&nc->accel_calib,&nc->accel,&nc->orient,smoothed);
 				calculate_gforce(&nc->accel_calib,&nc->accel,&nc->gforce);
@@ -150,7 +191,7 @@ static void __wpad_calc_data(WPADData *data,struct accel_t *accel_calib,u32 usea
 				break;
 		}
 	}
-
+	*lstate = *data;
 }
 
 static void __wpad_read_expansion(struct wiimote_t *wm,WPADData *data)
@@ -204,48 +245,56 @@ static void __wpad_eventCB(struct wiimote_t *wm,s32 event)
 	s32 chan;
 	u32 maxbufs;
 	WPADData *wpadd = NULL;
+	struct _wpad_cb *wpdcb = NULL;
 
-	//printf("__wpad_eventCB(%p,%02x,%d)\n",wm,event,__wpad_samplingbufs_idx[(wm->unid-1)]);
 	switch(event) {
 		case WIIUSE_EVENT:
 			chan = wm->unid;
-			if(__wpad_autosamplingbufs[chan]!=NULL) {
-				maxbufs = __wpad_max_autosamplingbufs[chan];
-				wpadd = &(__wpad_autosamplingbufs[chan][__wpad_samplingbufs_idx[chan]]);
+			wpdcb = &__wpdcb[chan];
+			wpdcb->idle_time = 0;
+			if(wpdcb->ringbuf_ext!=NULL) {
+				maxbufs = wpdcb->max_bufs;
+				wpadd = &(wpdcb->ringbuf_ext[wpdcb->buf_idx]);
 			} else {
 				maxbufs = MAX_RINGBUFS;
-				wpadd = &(__wpad_samplingbufs[chan][__wpad_samplingbufs_idx[chan]]);
+				wpadd = &(wpdcb->ringbuf_int[wpdcb->buf_idx]);
 			}
 
 			__wpad_read_wiimote(wm,wpadd);
 
-			__wpad_samplingbufs_idx[chan]++;
-			__wpad_samplingbufs_idx[chan] %= maxbufs;
+			wpdcb->buf_idx++;
+			wpdcb->buf_idx %= maxbufs;
 
-			if(__wpad_samplingCB[chan]!=NULL) __wpad_samplingCB[chan](chan);
+			if(wpdcb->samplingCB!=NULL) wpdcb->samplingCB(chan);
 			break;
 		case WIIUSE_STATUS:
 			break;
 		case WIIUSE_CONNECT:
-			//printf("wiimote connected\n");
 			chan = wm->unid;
-			__wpad_samplingbufs_idx[chan] = 0;
+			wpdcb = &__wpdcb[chan];
+			wpdcb->wm = wm;
+			wpdcb->buf_idx = 0;
+			wpdcb->idle_time = 0;
+			memset(&wpdcb->lstate,0,sizeof(WPADData));
 			memset(&wpaddata[chan],0,sizeof(WPADData));
-			memset(__wpad_samplingbufs[chan],0,(sizeof(WPADData)*MAX_RINGBUFS));
+			memset(wpdcb->ringbuf_int,0,(sizeof(WPADData)*MAX_RINGBUFS));
 			wiiuse_set_ir_position(wm,(CONF_GetSensorBarPosition()^1));
 			wiiuse_set_ir_sensitivity(wm,CONF_GetIRSensitivity());
 			wiiuse_set_leds(wm,(WIIMOTE_LED_1<<chan),NULL);
-			__wpads_connected |= (0x01<<chan);
+			__wpads_active |= (0x01<<chan);
 			break;
 		case WIIUSE_DISCONNECT:
 			chan = wm->unid;
-			__wpad_samplingCB[chan] = NULL;
-			__wpad_samplingbufs_idx[chan] = 0;
-			__wpad_autosamplingbufs[chan] = NULL;
-			__wpad_max_autosamplingbufs[chan] = 0;
+			wpdcb = &__wpdcb[chan];
+			wpdcb->wm = NULL;
+			wpdcb->buf_idx = 0;
+			wpdcb->max_bufs = 0;
+			wpdcb->ringbuf_ext = NULL;
+			wpdcb->idle_time = -1;
+			memset(&wpdcb->lstate,0,sizeof(WPADData));
 			memset(&wpaddata[chan],0,sizeof(WPADData));
-			memset(__wpad_samplingbufs[chan],0,(sizeof(WPADData)*MAX_RINGBUFS));
-			__wpads_connected &= ~(0x01<<chan);
+			memset(wpdcb->ringbuf_int,0,(sizeof(WPADData)*MAX_RINGBUFS));
+			__wpads_active &= ~(0x01<<chan);
 			break;
 		default:
 			break;
@@ -256,14 +305,14 @@ static void __wpad_eventCB(struct wiimote_t *wm,s32 event)
 void WPAD_Init()
 {
 	u32 level;
+	struct timespec tb;
 
 	_CPU_ISR_Disable(level);
 	if(__wpads_inited==WPAD_STATE_DISABLED) {
 		__wpads_ponded = 0;
-		__wpads_connected = 0;
+		__wpads_active = 0;
 		__wpads_registered = 0;
 
-		memset(__wpad_active_state,0,MAX_WIIMOTES);
 		memset(__wpdcb,0,sizeof(struct _wpad_cb)*MAX_WIIMOTES);
 		memset(__wpad_devs,0,sizeof(conf_pad_device)*MAX_WIIMOTES);
 		memset(__wpad_keys,0,sizeof(struct linkkey_info)*MAX_WIIMOTES);
@@ -277,11 +326,18 @@ void WPAD_Init()
 			return;
 		}
 
+		__wiiuse_sensorbar_enable(1);
+
 		BTE_Init();
 		BTE_InitCore(__initcore_finished);
 
+		SYS_CreateAlarm(&__wpad_timer);
 		SYS_RegisterResetFunc(&__wpad_resetinfo);
 	
+		tb.tv_sec = 1;
+		tb.tv_nsec = 0;
+		SYS_SetPeriodicAlarm(__wpad_timer,&tb,&tb,__wpad_timeouthandler);
+
 		__wpads_inited = WPAD_STATE_ENABLING;
 	}
 	_CPU_ISR_Restore(level);
@@ -294,8 +350,8 @@ void WPAD_Read(s32 chan,WPADData *data)
 	u32 maxbufs,smoothed = 0;
 	u32 useir = 0,useacc = 0,useexp = 0;
 	struct accel_t *accel_calib = NULL;
-	static struct orient_t last_orient[MAX_WIIMOTES] = {{0.0f}};
-	WPADData *wpadd = NULL;
+	struct _wpad_cb *wpdcb = NULL;
+	WPADData *lstate = NULL,*wpadd = NULL;
 
 	if(chan<WPAD_CHAN_0 || chan>WPAD_CHAN_3) return;
 
@@ -311,16 +367,18 @@ void WPAD_Read(s32 chan,WPADData *data)
 	data->err = WPAD_ERR_TRANSFER;
 	if(__wpads[chan] && WIIMOTE_IS_SET(__wpads[chan],WIIMOTE_STATE_CONNECTED)) {
 		if(WIIMOTE_IS_SET(__wpads[chan],WIIMOTE_STATE_HANDSHAKE_COMPLETE)) {
-			if(__wpad_autosamplingbufs[chan]!=NULL) {
-				maxbufs = __wpad_max_autosamplingbufs[chan];
-				wpadd = __wpad_autosamplingbufs[chan];
+			wpdcb = &__wpdcb[chan];
+			if(wpdcb->ringbuf_ext!=NULL) {
+				maxbufs = wpdcb->max_bufs;
+				wpadd = wpdcb->ringbuf_ext;
 			} else {
 				maxbufs = MAX_RINGBUFS;
-				wpadd = __wpad_samplingbufs[chan];
+				wpadd = wpdcb->ringbuf_int;
 			}
 
-			idx = ((__wpad_samplingbufs_idx[chan]-1)+maxbufs)%maxbufs;
+			idx = ((wpdcb->buf_idx-1)+maxbufs)%maxbufs;
 			*data = wpadd[idx];
+			lstate = &__wpdcb->lstate;
 			accel_calib = &__wpads[chan]->accel_calib;
 			smoothed = WIIMOTE_IS_FLAG_SET(__wpads[chan], WIIUSE_SMOOTHING);
 			useacc = WIIMOTE_IS_SET(__wpads[chan],WIIMOTE_STATE_ACC);
@@ -334,11 +392,7 @@ void WPAD_Read(s32 chan,WPADData *data)
 	data->orient = last_orient[chan];
 	_CPU_ISR_Restore(level);
 
-	__wpad_calc_data(data,accel_calib,useacc,useir,useexp,smoothed);
-	
-	_CPU_ISR_Disable(level);
-	last_orient[chan] = data->orient;
-	_CPU_ISR_Restore(level);
+	__wpad_calc_data(data,lstate,accel_calib,useacc,useir,useexp,smoothed);
 }
 
 void WPAD_SetDataFormat(s32 chan,s32 fmt)
@@ -445,13 +499,15 @@ s32 WPAD_Probe(s32 chan,u32 *type)
 wpadsamplingcallback WPAD_SetSamplingCallback(s32 chan,wpadsamplingcallback cb)
 {
 	u32 level;
+	struct _wpad_cb *wpdcb = NULL;
 	wpadsamplingcallback ret = NULL;
 
 	if(chan<WPAD_CHAN_0 || chan>WPAD_CHAN_3) return NULL;
 
 	_CPU_ISR_Disable(level);
-	ret = __wpad_samplingCB[chan];
-	__wpad_samplingCB[chan] = cb;
+	wpdcb = &__wpdcb[chan];
+	ret = wpdcb->samplingCB;
+	wpdcb->samplingCB = cb;
 	_CPU_ISR_Restore(level);
 
 	return ret;
@@ -460,13 +516,15 @@ wpadsamplingcallback WPAD_SetSamplingCallback(s32 chan,wpadsamplingcallback cb)
 void WPAD_SetSamplingBufs(s32 chan,void *bufs,u32 cnt)
 {
 	u32 level;
+	struct _wpad_cb *wpdcb = NULL;
 
 	if(chan<WPAD_CHAN_0 || chan>WPAD_CHAN_3) return;
 
 	_CPU_ISR_Disable(level);
-	__wpad_samplingbufs_idx[chan] = 0;
-	__wpad_autosamplingbufs[chan] = bufs;
-	__wpad_max_autosamplingbufs[chan] = cnt;
+	wpdcb = &__wpdcb[chan];
+	wpdcb->buf_idx = 0;
+	wpdcb->max_bufs = 0;
+	wpdcb->ringbuf_ext = bufs;
 	_CPU_ISR_Restore(level);
 }
 
@@ -475,16 +533,18 @@ u32 WPAD_GetLatestBufIndex(s32 chan)
 	u32 idx;
 	u32 level;
 	u32 maxbufs;
+	struct _wpad_cb *wpdcb = NULL;
 
 	if(chan<WPAD_CHAN_0 || chan>WPAD_CHAN_3) return 0;
 
 	_CPU_ISR_Disable(level);
-	if(__wpad_autosamplingbufs[chan]!=NULL)
-		maxbufs = __wpad_max_autosamplingbufs[chan];
+	wpdcb = &__wpdcb[chan];
+	if(wpdcb->ringbuf_ext!=NULL)
+		maxbufs = wpdcb->max_bufs;
 	else
 		maxbufs = MAX_RINGBUFS;
 
-	idx = ((__wpad_samplingbufs_idx[chan]-1)+maxbufs)%maxbufs;
+	idx = ((wpdcb->buf_idx-1)+maxbufs)%maxbufs;
 	_CPU_ISR_Restore(level);
 
 	return idx;
@@ -493,7 +553,7 @@ u32 WPAD_GetLatestBufIndex(s32 chan)
 void WPAD_Disconnect(s32 chan)
 {
 	u32 level;
-	wiimote *wm;
+	struct _wpad_cb *wpdcb = NULL;
 
 	if(chan<WPAD_CHAN_0 || chan>WPAD_CHAN_3) return;
 	
@@ -502,39 +562,48 @@ void WPAD_Disconnect(s32 chan)
 		_CPU_ISR_Restore(level);
 		return;
 	}
+	
+	wpdcb = &__wpdcb[chan];
+	__wpad_disconnect(wpdcb);
 	_CPU_ISR_Restore(level);
 
-	wm = __wpads[chan];
-	if(wm && WIIMOTE_IS_SET(wm,WIIMOTE_STATE_CONNECTED)) {
-		wiiuse_set_leds(wm,(__wpads_connected&~(0x01<<wm->unid))<<4,NULL);
-		wiiuse_disconnect(wm);
-		while(__wpads_connected&(0x01<<wm->unid));
-	}
+	while(__wpads_active&(0x01<<chan));
 }
 
 void WPAD_Shutdown()
 {
 	s32 i;
 	u32 level;
-	wiimote *wm;
-
+	struct _wpad_cb *wpdcb = NULL;
+	
 	_CPU_ISR_Disable(level);
 	if(__wpads_inited==WPAD_STATE_DISABLED) {
 		_CPU_ISR_Restore(level);
 		return;
 	}
-	__wpads_inited = WPAD_STATE_DISABLED;
-	_CPU_ISR_Restore(level);
 
+	SYS_RemoveAlarm(__wpad_timer);
 	for(i=0;i<MAX_WIIMOTES;i++) {
-		wm = __wpads[i];
-		if(wm && WIIMOTE_IS_SET(wm,WIIMOTE_STATE_CONNECTED)) {
-			wiiuse_disconnect(wm);
-			while(__wpads_connected&(0x01<<wm->unid));
-		}
+		wpdcb = &__wpdcb[i];
+		__wpad_disconnect(wpdcb);
 	}
 
+	__wiiuse_sensorbar_enable(0);
+	__wpads_inited = WPAD_STATE_DISABLED;
+	_CPU_ISR_Restore(level);
+	
+	while(__wpads_active);
+
 	BTE_Shutdown();
+}
+
+void WPAD_SetSleepTime(u32 sleep)
+{
+	u32 level;
+
+	_CPU_ISR_Disable(level);
+	__wpad_sleeptime = sleep;
+	_CPU_ISR_Restore(level);
 }
 
 u32 WPAD_ScanPads() 

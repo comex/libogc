@@ -252,13 +252,10 @@ s32 net_close(s32 s);
 s32 net_select(s32 maxfdp1,fd_set *readset,fd_set *writeset,fd_set *exceptset,struct timeval *timeout);
 s32 net_setsockopt(s32 s,u32 level,u32 optname,const void *optval,socklen_t optlen);
 s32 net_ioctl(s32 s, u32 cmd, void *argp);
-
-#if defined(HW_RVL)
 s32 net_fcntl(s32 s, u32 cmd, u32 flags);
-struct hostent * net_gethostbyname(char *addrString);
 s32 net_shutdown(s32 s, u32 how);
-u32 net_gethostip(void);
-#endif
+
+struct hostent * net_gethostbyname(char *addrString);
 
 #ifdef __cplusplus
 	}
