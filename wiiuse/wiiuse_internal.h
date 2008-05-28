@@ -22,7 +22,7 @@
  *	You should have received a copy of the GNU General Public License
  *	along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- *	$Header: /cvsroot/devkitpro/libogc/wiiuse/wiiuse_internal.h,v 1.2 2008/05/20 11:40:28 shagkur Exp $
+ *	$Header: /cvsroot/devkitpro/libogc/wiiuse/wiiuse_internal.h,v 1.4 2008/05/26 19:24:53 shagkur Exp $
  *
  */
 
@@ -171,7 +171,7 @@
 #define WIIMOTE_STATE_HANDSHAKE_COMPLETE		0x00008	/* actual connection exists but no handshake yet */
 #define WIIMOTE_STATE_CONNECTED					0x00010
 #define WIIMOTE_STATE_EXP_HANDSHAKE				0x00020	/* actual connection exists but no handshake yet */
-#define WIIMOTE_STATE_EXP_HANDSHAKE_COMPLETE	0x00040	/* actual connection exists but no handshake yet */
+#define WIIMOTE_STATE_EXP_FAILED				0x00040	/* actual connection exists but no handshake yet */
 #define WIIMOTE_STATE_RUMBLE					0x00080
 #define WIIMOTE_STATE_ACC						0x00100
 #define WIIMOTE_STATE_EXP						0x00200
@@ -182,6 +182,7 @@
 #define WIIMOTE_STATE_IR_SENS_LVL3				0x04000
 #define WIIMOTE_STATE_IR_SENS_LVL4				0x08000
 #define WIIMOTE_STATE_IR_SENS_LVL5				0x10000
+#define WIIMOTE_STATE_IR_INIT					0x20000
 
 #define WIIMOTE_INIT_STATES					(WIIMOTE_STATE_IR_SENS_LVL3)
 

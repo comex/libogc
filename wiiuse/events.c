@@ -37,36 +37,20 @@ static void save_state(struct wiimote_t* wm) {
 	wm->lstate.accel = wm->accel;
 
 	/* ir */
-	if (WIIUSE_USING_IR(wm)) {
-		wm->lstate.ir_ax = wm->ir.ax;
-		wm->lstate.ir_ay = wm->ir.ay;
-		wm->lstate.ir_distance = wm->ir.distance;
-	}
+	wm->lstate.ir = wm->ir;
 
 	/* expansion */
 	switch (wm->exp.type) {
 		case EXP_NUNCHUK:
-			wm->lstate.exp_ljs_ang = wm->exp.nunchuk.js.ang;
-			wm->lstate.exp_ljs_mag = wm->exp.nunchuk.js.mag;
-			wm->lstate.exp_btns = wm->exp.nunchuk.btns;
-			wm->lstate.exp_accel = wm->exp.nunchuk.accel;
+			wm->lstate.exp.nunchuk = wm->exp.nunchuk;
 			break;
 
 		case EXP_CLASSIC:
-			wm->lstate.exp_ljs_ang = wm->exp.classic.ljs.ang;
-			wm->lstate.exp_ljs_mag = wm->exp.classic.ljs.mag;
-			wm->lstate.exp_rjs_ang = wm->exp.classic.rjs.ang;
-			wm->lstate.exp_rjs_mag = wm->exp.classic.rjs.mag;
-			wm->lstate.exp_r_shoulder = wm->exp.classic.r_shoulder;
-			wm->lstate.exp_l_shoulder = wm->exp.classic.l_shoulder;
-			wm->lstate.exp_btns = wm->exp.classic.btns;
+			wm->lstate.exp.classic = wm->exp.classic;
 			break;
 
 		case EXP_GUITAR_HERO_3:
-			wm->lstate.exp_ljs_ang = wm->exp.gh3.js.ang;
-			wm->lstate.exp_ljs_mag = wm->exp.gh3.js.mag;
-			wm->lstate.exp_r_shoulder = wm->exp.gh3.whammy_bar;
-			wm->lstate.exp_btns = wm->exp.gh3.btns;
+			wm->lstate.exp.gh3 = wm->exp.gh3;
 			break;
 
 		case EXP_NONE:
@@ -81,33 +65,47 @@ static void save_state(struct wiimote_t* wm) {
  *	@return	1 if a significant change occured, 0 if not.
  */
 static int state_changed(struct wiimote_t* wm) {
+	s32 i;
+
+	#define ABS(x)		((s32)(x)>0?(s32)(x):-((s32)(x)))
+
 	#define STATE_CHANGED(a, b)		if (a != b)				return 1
 
-	#define CROSS_THRESH(last, now, thresh)										\
+	#define CROSS_THRESH_IR(last, now, thresh)									\
 				do {															\
 					if (WIIMOTE_IS_FLAG_SET(wm, WIIUSE_ORIENT_THRESH)) {		\
-						if ((diff_f(last.roll, now.roll) >= thresh) ||			\
-							(diff_f(last.pitch, now.pitch) >= thresh) ||		\
-							(diff_f(last.yaw, now.yaw) >= thresh))				\
+						if ((ABS((last.rx - now.rx)) >= thresh) ||				\
+							(ABS((last.ry - now.ry)) >= thresh))					\
 						{														\
-							last = now;											\
 							return 1;											\
 						}														\
 					} else {													\
-						if (last.roll != now.roll)		return 1;				\
-						if (last.pitch != now.pitch)	return 1;				\
-						if (last.yaw != now.yaw)		return 1;				\
+						if (last.rx != now.rx)		return 1;					\
+						if (last.ry != now.ry)		return 1;					\
 					}															\
 				} while (0)
 
-	#define CROSS_THRESH_XYZ(last, now, thresh)									\
+	#define CROSS_THRESH_JS(last, now, thresh)									\
 				do {															\
 					if (WIIMOTE_IS_FLAG_SET(wm, WIIUSE_ORIENT_THRESH)) {		\
-						if ((diff_f(last.x, now.x) >= thresh) ||				\
-							(diff_f(last.y, now.y) >= thresh) ||				\
-							(diff_f(last.z, now.z) >= thresh))					\
+						if ((ABS((last.x - now.x)) >= thresh) ||				\
+							(ABS((last.y - now.y)) >= thresh))					\
 						{														\
-							last = now;											\
+							return 1;											\
+						}														\
+					} else {													\
+						if (last.x != now.x)		return 1;					\
+						if (last.y != now.y)		return 1;					\
+					}															\
+				} while (0)
+
+	#define CROSS_THRESH_ACCEL(last, now, thresh)									\
+				do {															\
+					if (WIIMOTE_IS_FLAG_SET(wm, WIIUSE_ORIENT_THRESH)) {		\
+						if ((ABS((last.x - now.x)) >= thresh) ||				\
+							(ABS((last.y - now.y)) >= thresh) ||				\
+							(ABS((last.z - now.z)) >= thresh))					\
+						{														\
 							return 1;											\
 						}														\
 					} else {													\
@@ -119,49 +117,42 @@ static int state_changed(struct wiimote_t* wm) {
 
 	/* ir */
 	if (WIIUSE_USING_IR(wm)) {
-		STATE_CHANGED(wm->lstate.ir_ax, wm->ir.ax);
-		STATE_CHANGED(wm->lstate.ir_ay, wm->ir.ay);
-		STATE_CHANGED(wm->lstate.ir_distance, wm->ir.distance);
+		for(i=0;i<4;i++) {
+			if(wm->lstate.ir.dot[i].visible && wm->ir.dot[i].visible) {
+				CROSS_THRESH_IR(wm->lstate.ir.dot[i],wm->ir.dot[i],wm->ir_threshold);
+			}
+		}
 	}
 
 	/* accelerometer */
 	if (WIIUSE_USING_ACC(wm)) {
 		/* raw accelerometer */
-		CROSS_THRESH_XYZ(wm->lstate.accel, wm->accel, wm->accel_threshold);
-
-		/* orientation */
- 		CROSS_THRESH(wm->lstate.orient, wm->orient, wm->orient_threshold);
+		CROSS_THRESH_ACCEL(wm->lstate.accel, wm->accel, wm->accel_threshold);
 	}
 
 	/* expansion */
 	switch (wm->exp.type) {
 		case EXP_NUNCHUK:
 		{
-			STATE_CHANGED(wm->lstate.exp_ljs_ang, wm->exp.nunchuk.js.ang);
-			STATE_CHANGED(wm->lstate.exp_ljs_mag, wm->exp.nunchuk.js.mag);
-			STATE_CHANGED(wm->lstate.exp_btns, wm->exp.nunchuk.btns);
-
-			CROSS_THRESH(wm->lstate.exp_orient, wm->exp.nunchuk.orient, wm->exp.nunchuk.orient_threshold);
-			CROSS_THRESH_XYZ(wm->lstate.exp_accel, wm->exp.nunchuk.accel, wm->exp.nunchuk.accel_threshold);
+			CROSS_THRESH_JS(wm->lstate.exp.nunchuk.js.pos, wm->exp.nunchuk.js.pos,1);
+			CROSS_THRESH_ACCEL(wm->lstate.exp.nunchuk.accel, wm->exp.nunchuk.accel, wm->exp.nunchuk.accel_threshold);
+			STATE_CHANGED(wm->lstate.exp.nunchuk.btns, wm->exp.nunchuk.btns);
 			break;
 		}
 		case EXP_CLASSIC:
 		{
-			STATE_CHANGED(wm->lstate.exp_ljs_ang, wm->exp.classic.ljs.ang);
-			STATE_CHANGED(wm->lstate.exp_ljs_mag, wm->exp.classic.ljs.mag);
-			STATE_CHANGED(wm->lstate.exp_rjs_ang, wm->exp.classic.rjs.ang);
-			STATE_CHANGED(wm->lstate.exp_rjs_mag, wm->exp.classic.rjs.mag);
-			STATE_CHANGED(wm->lstate.exp_r_shoulder, wm->exp.classic.r_shoulder);
-			STATE_CHANGED(wm->lstate.exp_l_shoulder, wm->exp.classic.l_shoulder);
-			STATE_CHANGED(wm->lstate.exp_btns, wm->exp.classic.btns);
+			CROSS_THRESH_JS(wm->lstate.exp.classic.ljs.pos, wm->exp.classic.ljs.pos,1);
+			CROSS_THRESH_JS(wm->lstate.exp.classic.rjs.pos, wm->exp.classic.rjs.pos,1);
+			STATE_CHANGED(wm->lstate.exp.classic.rs_raw, wm->exp.classic.rs_raw);
+			STATE_CHANGED(wm->lstate.exp.classic.ls_raw, wm->exp.classic.ls_raw);
+			STATE_CHANGED(wm->lstate.exp.classic.btns, wm->exp.classic.btns);
 			break;
 		}
 		case EXP_GUITAR_HERO_3:
 		{
-			STATE_CHANGED(wm->lstate.exp_ljs_ang, wm->exp.gh3.js.ang);
-			STATE_CHANGED(wm->lstate.exp_ljs_mag, wm->exp.gh3.js.mag);
-			STATE_CHANGED(wm->lstate.exp_r_shoulder, wm->exp.gh3.whammy_bar);
-			STATE_CHANGED(wm->lstate.exp_btns, wm->exp.gh3.btns);
+			CROSS_THRESH_JS(wm->lstate.exp.gh3.js.pos, wm->exp.gh3.js.pos,1);
+			STATE_CHANGED(wm->lstate.exp.gh3.wb_raw, wm->exp.gh3.wb_raw);
+			STATE_CHANGED(wm->lstate.exp.gh3.btns, wm->exp.gh3.btns);
 			break;
 		}
 		case EXP_NONE:
@@ -251,10 +242,7 @@ static void event_status(struct wiimote_t *wm,ubyte *msg)
 	int ir = 0;
 	int attachment = 0;
 	int led[4]= {0};
-	int exp_changed = 0;
 	struct cmd_blk_t *cmd = wm->cmd_head;
-
-	//printf("event_status(%p)\n",cmd);
 
 	wiiuse_pressed_buttons(wm,msg);
 
@@ -267,28 +255,32 @@ static void event_status(struct wiimote_t *wm,ubyte *msg)
 	if((msg[2]&WM_CTRL_STATUS_BYTE1_ATTACHMENT)==WM_CTRL_STATUS_BYTE1_ATTACHMENT) attachment = 1;
 		
 	if((msg[2]&WM_CTRL_STATUS_BYTE1_IR_ENABLED)==WM_CTRL_STATUS_BYTE1_IR_ENABLED) ir = 1;
-#ifdef GEKKO
+
 	wm->battery_level = msg[5];
-#else
-	wm->battery_level = ((msg[5] / (float)WM_MAX_BATTERY_CODE)*100.0F);
-#endif
 
-	if(attachment && !WIIMOTE_IS_SET(wm,WIIMOTE_STATE_EXP)) {
-		wiiuse_handshake_expansion(wm,NULL,0);
-		exp_changed = 1;
-	} else if(!attachment && WIIMOTE_IS_SET(wm,WIIMOTE_STATE_EXP)) {
-		wiiuse_disable_expansion(wm);
-		exp_changed = 0;
+	if(!ir && WIIMOTE_IS_SET(wm,WIIMOTE_STATE_IR_INIT)) {
+		WIIMOTE_DISABLE_STATE(wm, WIIMOTE_STATE_IR_INIT);
+		wiiuse_set_ir(wm, 1);
+		goto done;
 	}
+	if(ir && !WIIMOTE_IS_SET(wm,WIIMOTE_STATE_IR)) WIIMOTE_ENABLE_STATE(wm,WIIMOTE_STATE_IR);
+	else if(!ir && WIIMOTE_IS_SET(wm,WIIMOTE_STATE_IR)) WIIMOTE_DISABLE_STATE(wm, (WIIMOTE_STATE_IR|WIIMOTE_STATE_IR));
 
-	if(!exp_changed) {
-		if(!ir && WIIMOTE_IS_SET(wm,WIIMOTE_STATE_IR)) {
-			WIIMOTE_DISABLE_STATE(wm, WIIMOTE_STATE_IR);
-			wiiuse_set_ir(wm, 1);
-		} else
-			wiiuse_set_report_type(wm,NULL);
+	if(attachment) {
+		if(!WIIMOTE_IS_SET(wm,WIIMOTE_STATE_EXP) && !WIIMOTE_IS_SET(wm,WIIMOTE_STATE_EXP_FAILED)) {
+			wiiuse_handshake_expansion(wm,NULL,0);
+			goto done;
+		}
+	} else {
+		WIIMOTE_DISABLE_STATE(wm,WIIMOTE_STATE_EXP_FAILED);
+		if(WIIMOTE_IS_SET(wm,WIIMOTE_STATE_EXP)) {
+			wiiuse_disable_expansion(wm);
+			goto done;
+		}
 	}
+	wiiuse_set_report_type(wm,NULL);
 
+done:
 	if(!cmd) return;
 	if(!(cmd->state==CMD_SENT && cmd->data[0]==WM_CMD_CTRL_STATUS)) return;
 
@@ -348,10 +340,11 @@ void parse_event(struct wiimote_t *wm)
 	ubyte event;
 	ubyte *msg;
 
-	//save_state(wm);
+	save_state(wm);
 
 	event = wm->event_buf[0];
 	msg = wm->event_buf+1;
+//	printf("parse_event(%02x,%p)\n",event,msg);
 	switch(event) {
 		case WM_RPT_CTRL_STATUS:
 			event_status(wm,msg);
@@ -438,8 +431,8 @@ void parse_event(struct wiimote_t *wm)
 	}
 
 	/* was there an event? */
-	//if(state_changed(wm)) 
-	wm->event = WIIUSE_EVENT;
+	if(state_changed(wm)) 
+		wm->event = WIIUSE_EVENT;
 }
 
 /**

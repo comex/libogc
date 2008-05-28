@@ -59,13 +59,11 @@ struct wiimote_t** wiiuse_init(int wiimotes, wii_event_cb event_cb) {
 	if (!wiimotes)
 		return NULL;
 
-	wm = malloc(sizeof(struct wiimote_t*) * wiimotes);
+	wm = __lwp_wkspace_allocate(sizeof(struct wiimote_t*) * wiimotes);
 	if(!wm) return NULL;
-#ifdef GEKKO
-	__wiiuse_sensorbar_enable(1);
-#endif
+
 	for (i = 0; i < wiimotes; ++i) {
-		wm[i] = malloc(sizeof(struct wiimote_t));
+		wm[i] = __lwp_wkspace_allocate(sizeof(struct wiimote_t));
 		memset(wm[i], 0, sizeof(struct wiimote_t));
 
 		wm[i]->unid = i;
@@ -97,7 +95,7 @@ struct wiimote_t** wiiuse_init(int wiimotes, wii_event_cb event_cb) {
 		wiiuse_set_aspect_ratio(wm[i], WIIUSE_ASPECT_4_3);
 		wiiuse_set_ir_position(wm[i], WIIUSE_IR_ABOVE);
 
-		wm[i]->orient_threshold = 0.5f;
+		wm[i]->ir_threshold = 1;
 		wm[i]->accel_threshold = 5;
 
 		wm[i]->accel_calib.st_alpha = WIIUSE_DEFAULT_SMOOTH_ALPHA;
@@ -150,6 +148,11 @@ void wiiuse_motion_sensing(struct wiimote_t* wm, int status) {
 	if(!WIIMOTE_IS_SET(wm,WIIMOTE_STATE_HANDSHAKE_COMPLETE)) return;
 
 	wiiuse_status(wm,NULL);
+}
+
+void wiiuse_set_accel_threshold(struct wiimote_t *wm, int threshold)
+{
+	wm->accel_threshold = threshold;
 }
 
 /**

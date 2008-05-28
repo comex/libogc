@@ -22,7 +22,7 @@
  *	You should have received a copy of the GNU General Public License
  *	along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- *	$Header: /cvsroot/devkitpro/libogc/wiiuse/classic.c,v 1.4 2008/05/21 08:15:25 shagkur Exp $
+ *	$Header: /cvsroot/devkitpro/libogc/wiiuse/classic.c,v 1.6 2008/05/26 19:24:53 shagkur Exp $
  *
  */
 
@@ -114,8 +114,6 @@ int classic_ctrl_handshake(struct wiimote_t* wm, struct classic_ctrl_t* cc, ubyt
 	wm->timeout = WIIMOTE_DEFAULT_TIMEOUT;
 	#endif
 
-	WIIMOTE_DISABLE_STATE(wm,WIIMOTE_STATE_EXP_HANDSHAKE);
-	WIIMOTE_ENABLE_STATE(wm,WIIMOTE_STATE_EXP_HANDSHAKE_COMPLETE);
 	return 1;
 }
 
@@ -125,7 +123,8 @@ int classic_ctrl_handshake(struct wiimote_t* wm, struct classic_ctrl_t* cc, ubyt
  *
  *	@param cc		A pointer to a classic_ctrl_t structure.
  */
-void classic_ctrl_disconnected(struct classic_ctrl_t* cc) {
+void classic_ctrl_disconnected(struct classic_ctrl_t* cc) 
+{
 	memset(cc, 0, sizeof(struct classic_ctrl_t));
 }
 

@@ -253,6 +253,18 @@ static void ir_convert_to_vres(int* x, int* y, enum aspect_t aspect, unsigned in
 	*y = (*y / (float)ys) * vy;
 }
 
+void wiiuse_set_ir_mode(struct wiimote_t *wm)
+{
+	ubyte buf = 0x00;
+
+	if(!wm) return;
+	if(!WIIMOTE_IS_SET(wm,WIIMOTE_STATE_IR)) return;
+
+	if(WIIMOTE_IS_SET(wm,WIIMOTE_STATE_EXP)) buf = WM_IR_TYPE_BASIC;
+	else buf = WM_IR_TYPE_EXTENDED;
+	wiiuse_write_data(wm,WM_REG_IR_MODENUM, &buf, 1, NULL);
+}
+
 void wiiuse_set_ir(struct wiimote_t *wm,int status)
 {
 	ubyte buf = 0x00;
@@ -270,7 +282,11 @@ void wiiuse_set_ir(struct wiimote_t *wm,int status)
 	 */
 	if(!WIIMOTE_IS_SET(wm,WIIMOTE_STATE_HANDSHAKE_COMPLETE)) {
 		WIIUSE_DEBUG("Tried to enable IR, will wait until handshake finishes.\n");
-		WIIMOTE_ENABLE_STATE(wm, WIIMOTE_STATE_IR);
+		if(status)
+			WIIMOTE_ENABLE_STATE(wm, WIIMOTE_STATE_IR_INIT);
+		else
+			WIIMOTE_DISABLE_STATE(wm, WIIMOTE_STATE_IR_INIT);
+
 		return;
 	}
 
@@ -289,14 +305,12 @@ void wiiuse_set_ir(struct wiimote_t *wm,int status)
 			wiiuse_status(wm,NULL);
 			return;
 		}
-		WIIMOTE_ENABLE_STATE(wm, WIIMOTE_STATE_IR);
 	} else {
 		/* if already disabled then stop */
 		if (!WIIMOTE_IS_SET(wm, WIIMOTE_STATE_IR)) {
 			wiiuse_status(wm,NULL);
 			return;
 		}
-		WIIMOTE_DISABLE_STATE(wm, WIIMOTE_STATE_IR);
 	}
 
 	buf = (status ? 0x04 : 0x00);
@@ -305,7 +319,6 @@ void wiiuse_set_ir(struct wiimote_t *wm,int status)
 
 	if (!status) {
 		WIIUSE_DEBUG("Disabled IR cameras for wiimote id %i.", wm->unid);
-		//wiiuse_set_report_type(wm,NULL);
 		wiiuse_status(wm,NULL);
 		return;
 	}
@@ -316,12 +329,11 @@ void wiiuse_set_ir(struct wiimote_t *wm,int status)
 
 	wiiuse_write_data(wm, WM_REG_IR_BLOCK1, (ubyte*)block1, 9, NULL);
 	wiiuse_write_data(wm, WM_REG_IR_BLOCK2, (ubyte*)block2, 2, NULL);
-
+	
 	if(WIIMOTE_IS_SET(wm,WIIMOTE_STATE_EXP)) buf = WM_IR_TYPE_BASIC;
 	else buf = WM_IR_TYPE_EXTENDED;
 	wiiuse_write_data(wm,WM_REG_IR_MODENUM, &buf, 1, NULL);
 
-	//wiiuse_set_report_type(wm,NULL);
 	wiiuse_status(wm,NULL);
 	return;
 }
@@ -444,6 +456,8 @@ void wiiuse_set_ir_sensitivity(struct wiimote_t* wm, int level) {
 			return;
 	}
 
+	if(!WIIMOTE_IS_SET(wm,WIIMOTE_STATE_IR)) return;
+	
 	/* set the new sensitivity */
 	get_ir_sens(wm, &block1, &block2);
 
@@ -454,6 +468,10 @@ void wiiuse_set_ir_sensitivity(struct wiimote_t* wm, int level) {
 }
 
 
+void wiiuse_set_ir_treshold(struct wiimote_t* wm, int threshold)
+{
+	wm->ir_threshold = threshold;
+}
 
 /**
  *	@brief Calculate the data from the IR spots.  Basic IR mode.

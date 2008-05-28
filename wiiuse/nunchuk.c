@@ -64,15 +64,12 @@ int nunchuk_handshake(struct wiimote_t *wm,struct nunchuk_t *nc,ubyte *data,uwor
 	nc->js.max.y = data[offset + 11];
 	nc->js.min.y = data[offset + 12];
 	nc->js.center.y = data[offset + 13];
-#ifndef GEKKO
-	nc->orient_threshold = wm->orient_threshold;
+
 	nc->accel_threshold = wm->accel_threshold;
-#endif
+	
 	wm->event = WIIUSE_NUNCHUK_INSERTED;
 	wm->exp.type = EXP_NUNCHUK;
 
-	WIIMOTE_DISABLE_STATE(wm,WIIMOTE_STATE_EXP_HANDSHAKE);
-	WIIMOTE_ENABLE_STATE(wm,WIIMOTE_STATE_EXP_HANDSHAKE_COMPLETE);
 	return 1;
 }
 
@@ -81,7 +78,8 @@ int nunchuk_handshake(struct wiimote_t *wm,struct nunchuk_t *nc,ubyte *data,uwor
  *
  *	@param nc		A pointer to a nunchuk_t structure.
  */
-void nunchuk_disconnected(struct nunchuk_t* nc) {
+void nunchuk_disconnected(struct nunchuk_t* nc) 
+{
 	//printf("nunchuk_disconnected()\n");
 	memset(nc, 0, sizeof(struct nunchuk_t));
 }
