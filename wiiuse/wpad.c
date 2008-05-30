@@ -32,7 +32,7 @@ struct _wpad_cb {
 static syswd_t __wpad_timer;
 static vu32 __wpads_inited = 0;
 static vs32 __wpads_ponded = 0;
-static u32 __wpad_sleeptime = 5;
+static u32 __wpad_sleeptime = 300;
 static vu32 __wpads_active = 0;
 static vs32 __wpads_registered = 0;
 static wiimote **__wpads = NULL;
@@ -630,6 +630,67 @@ u32 WPAD_ScanPads()
 	}
 	return connected;		
 }
+
+void WPAD_Rumble(s32 chan, int status)
+{
+	u32 level;
+
+	_CPU_ISR_Disable(level);
+	if(__wpads_inited==WPAD_STATE_DISABLED) {
+		_CPU_ISR_Restore(level);
+		return;
+	}
+
+	if(__wpads[chan]!=NULL) 
+		wiiuse_rumble(__wpads[chan],status);
+
+	_CPU_ISR_Restore(level);
+}
+
+void WPAD_SetIRThreshold(s32 chan, int enabled, int threshold)
+{
+	u32 level;
+
+	_CPU_ISR_Disable(level);
+	if(__wpads_inited==WPAD_STATE_DISABLED) {
+		_CPU_ISR_Restore(level);
+		return;
+	}
+
+	if(__wpads[chan]!=NULL) {
+		if(!enabled) {
+			wiiuse_set_flags(__wpads[chan], 0, WIIUSE_IR_THRESH);
+		} else {
+			wiiuse_set_flags(__wpads[chan], WIIUSE_IR_THRESH, 0);
+			wiiuse_set_ir_threshold(__wpads[chan], threshold);
+		}
+	}
+
+	_CPU_ISR_Restore(level);
+}
+
+void WPAD_SetAccelThreshold(s32 chan, int enabled, int threshold)
+{
+	u32 level;
+
+	_CPU_ISR_Disable(level);
+	if(__wpads_inited==WPAD_STATE_DISABLED) {
+		_CPU_ISR_Restore(level);
+		return;
+	}
+
+	if(__wpads[chan]!=NULL) {
+		if(!enabled) {
+			wiiuse_set_flags(__wpads[chan], 0, WIIUSE_ACCEL_THRESH);
+		} else {
+			wiiuse_set_flags(__wpads[chan], WIIUSE_ACCEL_THRESH, 0);
+			wiiuse_set_accel_threshold(__wpads[chan], threshold);
+		}
+	}
+
+	_CPU_ISR_Restore(level);
+}
+
 
 u32 WPAD_ButtonsUp(int pad)
 {

@@ -468,7 +468,7 @@ void wiiuse_set_ir_sensitivity(struct wiimote_t* wm, int level) {
 }
 
 
-void wiiuse_set_ir_treshold(struct wiimote_t* wm, int threshold)
+void wiiuse_set_ir_threshold(struct wiimote_t* wm, int threshold)
 {
 	wm->ir_threshold = threshold;
 }

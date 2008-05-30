@@ -84,8 +84,10 @@
 /* wiimote option flags */
 #define WIIUSE_SMOOTHING				0x01
 #define WIIUSE_CONTINUOUS				0x02
-#define WIIUSE_ORIENT_THRESH			0x04
-#define WIIUSE_INIT_FLAGS				(WIIUSE_SMOOTHING | WIIUSE_ORIENT_THRESH)
+#define WIIUSE_ACCEL_THRESH				0x04
+#define WIIUSE_IR_THRESH				0x08
+#define WIIUSE_JS_THRESH				0x10
+#define WIIUSE_INIT_FLAGS				WIIUSE_SMOOTHING
 
 #define WIIUSE_ORIENT_PRECISION			100.0f
 
@@ -655,11 +657,6 @@ WIIUSE_EXPORT extern void wiiuse_set_ir_vres(struct wiimote_t* wm, unsigned int 
 WIIUSE_EXPORT extern void wiiuse_set_ir_position(struct wiimote_t* wm, enum ir_position_t pos);
 WIIUSE_EXPORT extern void wiiuse_set_aspect_ratio(struct wiimote_t* wm, enum aspect_t aspect);
 WIIUSE_EXPORT extern void wiiuse_set_ir_sensitivity(struct wiimote_t* wm, int level);
-
-/* nunchuk.c */
-WIIUSE_EXPORT extern void wiiuse_set_nunchuk_orient_threshold(struct wiimote_t* wm, float threshold);
-WIIUSE_EXPORT extern void wiiuse_set_nunchuk_accel_threshold(struct wiimote_t* wm, int threshold);
-
 
 #ifdef __cplusplus
 }

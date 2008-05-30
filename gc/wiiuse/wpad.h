@@ -117,6 +117,10 @@ wpadsamplingcallback WPAD_SetSamplingCallback(s32 chan,wpadsamplingcallback cb);
 
 u32 WPAD_ScanPads();
 
+void WPAD_Rumble(s32 chan, int status);
+void WPAD_SetIRThreshold(s32 chan, int enabled, int threshold);
+void WPAD_SetAccelThreshold(s32 chan, int enabled, int threshold);
+
 u32 WPAD_ButtonsUp(int pad);
 u32 WPAD_ButtonsDown(int pad);
 u32 WPAD_ButtonsHeld(int pad);

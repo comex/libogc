@@ -73,13 +73,15 @@ static int state_changed(struct wiimote_t* wm) {
 
 	#define CROSS_THRESH_IR(last, now, thresh)									\
 				do {															\
-					if (WIIMOTE_IS_FLAG_SET(wm, WIIUSE_ORIENT_THRESH)) {		\
+					if (WIIMOTE_IS_FLAG_SET(wm, WIIUSE_IR_THRESH)) {			\
 						if ((ABS((last.rx - now.rx)) >= thresh) ||				\
-							(ABS((last.ry - now.ry)) >= thresh))					\
+							(ABS((last.ry - now.ry)) >= thresh) ||				\
+							(last.visible != now.visible))						\
 						{														\
 							return 1;											\
 						}														\
 					} else {													\
+						if (last.visible != now.visible)	return 1;			\
 						if (last.rx != now.rx)		return 1;					\
 						if (last.ry != now.ry)		return 1;					\
 					}															\
@@ -87,7 +89,7 @@ static int state_changed(struct wiimote_t* wm) {
 
 	#define CROSS_THRESH_JS(last, now, thresh)									\
 				do {															\
-					if (WIIMOTE_IS_FLAG_SET(wm, WIIUSE_ORIENT_THRESH)) {		\
+					if (WIIMOTE_IS_FLAG_SET(wm, WIIUSE_JS_THRESH)) {			\
 						if ((ABS((last.x - now.x)) >= thresh) ||				\
 							(ABS((last.y - now.y)) >= thresh))					\
 						{														\
@@ -99,9 +101,9 @@ static int state_changed(struct wiimote_t* wm) {
 					}															\
 				} while (0)
 
-	#define CROSS_THRESH_ACCEL(last, now, thresh)									\
+	#define CROSS_THRESH_ACCEL(last, now, thresh)								\
 				do {															\
-					if (WIIMOTE_IS_FLAG_SET(wm, WIIUSE_ORIENT_THRESH)) {		\
+					if (WIIMOTE_IS_FLAG_SET(wm, WIIUSE_ACCEL_THRESH)) {			\
 						if ((ABS((last.x - now.x)) >= thresh) ||				\
 							(ABS((last.y - now.y)) >= thresh) ||				\
 							(ABS((last.z - now.z)) >= thresh))					\
@@ -340,8 +342,6 @@ void parse_event(struct wiimote_t *wm)
 	ubyte event;
 	ubyte *msg;
 
-	save_state(wm);
-
 	event = wm->event_buf[0];
 	msg = wm->event_buf+1;
 //	printf("parse_event(%02x,%p)\n",event,msg);
@@ -431,8 +431,11 @@ void parse_event(struct wiimote_t *wm)
 	}
 
 	/* was there an event? */
-	if(state_changed(wm)) 
+	if(state_changed(wm)) {
 		wm->event = WIIUSE_EVENT;
+		save_state(wm);
+	}
+
 }
 
 /**
