@@ -255,6 +255,8 @@ s32 net_ioctl(s32 s, u32 cmd, void *argp);
 s32 net_fcntl(s32 s, u32 cmd, u32 flags);
 s32 net_shutdown(s32 s, u32 how);
 
+u32 net_gethostip(void);
+
 struct hostent * net_gethostbyname(char *addrString);
 
 #ifdef __cplusplus
