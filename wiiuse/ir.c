@@ -468,11 +468,6 @@ void wiiuse_set_ir_sensitivity(struct wiimote_t* wm, int level) {
 }
 
 
-void wiiuse_set_ir_threshold(struct wiimote_t* wm, int threshold)
-{
-	wm->ir_threshold = threshold;
-}
-
 /**
  *	@brief Calculate the data from the IR spots.  Basic IR mode.
  *
@@ -549,14 +544,11 @@ void calculate_extended_ir(struct wiimote_t* wm, ubyte* data) {
  *
  *	@param wm		Pointer to a wiimote_t structure.
  */
-void interpret_ir_data(struct ir_t* ir, struct orient_t *orient,int has_acc) {
+void interpret_ir_data(struct ir_t* ir, struct orient_t *orient) {
 	struct ir_dot_t* dot = ir->dot;
 	int i;
 	float roll = 0.0f;
 	int last_num_dots = ir->num_dots;
-
-	if (has_acc)
-		roll = orient->roll;
 
 	/* count visible dots */
 	ir->num_dots = 0;

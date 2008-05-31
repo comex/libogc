@@ -362,6 +362,8 @@ typedef struct ir_t {
 	int offset[2];					/**< IR XY correction offset			*/
 	int state;						/**< keeps track of the IR state		*/
 
+	int valid;						/**< is the position valid? */
+
 	int ax;							/**< absolute X coordinate				*/
 	int ay;							/**< absolute Y coordinate				*/
 
@@ -413,8 +415,6 @@ typedef struct nunchuk_t {
 	ubyte btns_last;				/**< what buttons have just been pressed	*/
 	ubyte btns_held;				/**< what buttons are being held down		*/
 	ubyte btns_released;			/**< what buttons were just released this	*/
-
-	int accel_threshold;			/**< threshold for accel to generate an event */
 
 	struct vec3b_t accel;			/**< current raw acceleration data			*/
 	struct orient_t orient;			/**< current orientation on each axis		*/
@@ -573,14 +573,11 @@ typedef struct wiimote_t {
 
 	WCONST struct ir_t ir;					/**< IR data								*/
 
-	WCONST unsigned short btns;				/**< what buttons have just been pressed	*/
-	WCONST unsigned short btns_last;		/**< what buttons have been pressed last    */
-	WCONST unsigned short btns_held;		/**< what buttons are being held down		*/
-	WCONST unsigned short btns_released;	/**< what buttons were just released this	*/
+	WCONST unsigned short btns;				/**< what buttons are down					*/
+	WCONST unsigned short btns_last;		/**< what buttons were down before			*/
+	WCONST unsigned short btns_held;		/**< what buttons are and were held down	*/
+	WCONST unsigned short btns_released;	/**< what buttons were just released		*/
 
-	WCONST int accel_threshold;				/**< threshold for accel to generate an event */
-	WCONST int ir_threshold;
-	
 	WCONST struct wiimote_state_t lstate;	/**< last saved state						*/
 
 	WCONST WIIUSE_EVENT_TYPE event;			/**< type of event that occured				*/
@@ -636,10 +633,8 @@ WIIUSE_EXPORT extern struct wiimote_t* wiiuse_get_by_id(struct wiimote_t** wm, i
 WIIUSE_EXPORT extern int wiiuse_set_flags(struct wiimote_t* wm, int enable, int disable);
 WIIUSE_EXPORT extern float wiiuse_set_smooth_alpha(struct wiimote_t* wm, float alpha);
 WIIUSE_EXPORT extern void wiiuse_set_bluetooth_stack(struct wiimote_t** wm, int wiimotes, enum win_bt_stack_t type);
-WIIUSE_EXPORT extern void wiiuse_set_ir_threshold(struct wiimote_t* wm, int threshold);
 WIIUSE_EXPORT extern void wiiuse_resync(struct wiimote_t* wm);
 WIIUSE_EXPORT extern void wiiuse_set_timeout(struct wiimote_t** wm, int wiimotes, ubyte normal_timeout, ubyte exp_timeout);
-WIIUSE_EXPORT extern void wiiuse_set_accel_threshold(struct wiimote_t* wm, int threshold);
 WIIUSE_EXPORT extern int wiiuse_write_streamdata(struct wiimote_t *wm,ubyte *data,ubyte len,cmd_blk_cb cb);
 
 /* connect.c */
