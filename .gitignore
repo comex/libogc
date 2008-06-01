@@ -1,8 +1,10 @@
-.*.swp
-cube
+build
 deps
-gc/ogc/libversion.h
-include
 lib
+include
+cube
 wii
-
+*~
+gc/ogc/libversion.h
+*.tar.gz
+00*
