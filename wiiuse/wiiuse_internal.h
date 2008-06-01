@@ -210,7 +210,7 @@
  *		St = St_last + (alpha * (tilt - St_last))
  *	alpha is between 0 and 1
  */
-#define WIIUSE_DEFAULT_SMOOTH_ALPHA		0.07f
+#define WIIUSE_DEFAULT_SMOOTH_ALPHA		0.3f
 
 #define SMOOTH_ROLL						0x01
 #define SMOOTH_PITCH					0x02

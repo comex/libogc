@@ -27,6 +27,7 @@ struct _wpad_thresh{
 
 struct _wpad_cb {
 	wiimote *wm;
+	s32 data_fmt;
 	s32 queue_head;
 	s32 queue_tail;
 	s32 queue_full;
@@ -96,6 +97,29 @@ static void __wpad_timeouthandler(syswd_t alarm)
 	__lwp_thread_dispatchunnest();
 }
 
+static void __wpad_setfmt(s32 chan)
+{
+	switch(__wpdcb[chan].data_fmt) {
+		case WPAD_FMT_BTNS:
+			wiiuse_set_flags(__wpads[chan], 0, WIIUSE_CONTINUOUS);
+			wiiuse_motion_sensing(__wpads[chan],0);
+			wiiuse_set_ir(__wpads[chan],0);
+			break;
+		case WPAD_FMT_BTNS_ACC:
+			wiiuse_set_flags(__wpads[chan], WIIUSE_CONTINUOUS, 0);
+			wiiuse_motion_sensing(__wpads[chan],1);
+			wiiuse_set_ir(__wpads[chan],0);
+			break;
+		case WPAD_FMT_BTNS_ACC_IR:
+			wiiuse_set_flags(__wpads[chan], WIIUSE_CONTINUOUS, 0);
+			wiiuse_motion_sensing(__wpads[chan],1);
+			wiiuse_set_ir(__wpads[chan],1);
+			break;
+		default:
+			break;
+	}
+}
+
 static s32 __wpad_init_finished(s32 result,void *usrdata)
 {
 	u32 i;
@@ -159,8 +183,21 @@ static void __wpad_calc_data(WPADData *data,WPADData *lstate,struct accel_t *acc
 	if(data->err!=WPAD_ERR_NONE) return;
 
 	data->orient = lstate->orient;
+
 	data->ir.state = lstate->ir.state;
+	data->ir.sensorbar = lstate->ir.sensorbar;
+	data->ir.x = lstate->ir.x;
+	data->ir.y = lstate->ir.y;
+	data->ir.sx = lstate->ir.sx;
+	data->ir.sy = lstate->ir.sy;
+	data->ir.ax = lstate->ir.ax;
+	data->ir.ay = lstate->ir.ay;
 	data->ir.distance = lstate->ir.distance;
+	data->ir.z = lstate->ir.z;
+	data->ir.angle = lstate->ir.angle;
+	data->ir.error_cnt = lstate->ir.error_cnt;
+	data->ir.glitch_cnt = lstate->ir.glitch_cnt;
+
 	data->btns_l = lstate->btns_h;
 	if(data->data_present & WPAD_DATA_ACCEL) {
 		calculate_orientation(accel_calib, &data->accel, &data->orient, smoothed);
@@ -394,6 +431,7 @@ static void __wpad_eventCB(struct wiimote_t *wm,s32 event)
 			wiiuse_set_ir_position(wm,(CONF_GetSensorBarPosition()^1));
 			wiiuse_set_ir_sensitivity(wm,CONF_GetIRSensitivity());
 			wiiuse_set_leds(wm,(WIIMOTE_LED_1<<chan),NULL);
+			__wpad_setfmt(chan);
 			__wpads_active |= (0x01<<chan);
 			break;
 		case WIIUSE_DISCONNECT:
@@ -659,24 +697,14 @@ s32 WPAD_SetDataFormat(s32 chan, s32 fmt)
 	if(__wpads[chan]!=NULL) {
 		switch(fmt) {
 			case WPAD_FMT_BTNS:
-				wiiuse_set_flags(__wpads[chan], 0, WIIUSE_CONTINUOUS);
-				wiiuse_motion_sensing(__wpads[chan],0);
-				wiiuse_set_ir(__wpads[chan],0);
-				break;
 			case WPAD_FMT_BTNS_ACC:
-				wiiuse_set_flags(__wpads[chan], WIIUSE_CONTINUOUS, 0);
-				wiiuse_motion_sensing(__wpads[chan],1);
-				wiiuse_set_ir(__wpads[chan],0);
-				break;
 			case WPAD_FMT_BTNS_ACC_IR:
-				wiiuse_set_flags(__wpads[chan], WIIUSE_CONTINUOUS, 0);
-				wiiuse_motion_sensing(__wpads[chan],1);
-				wiiuse_set_ir(__wpads[chan],1);
+				__wpdcb[chan].data_fmt = fmt;
+				__wpad_setfmt(chan);
 				break;
 			default:
 				_CPU_ISR_Restore(level);
 				return WPAD_ERR_BADVALUE;
-				break;
 		}
 	}
 	_CPU_ISR_Restore(level);
@@ -836,7 +864,7 @@ void WPAD_SetIdleTimeout(u32 seconds)
 	_CPU_ISR_Restore(level);
 }
 
-u32 WPAD_ScanPads()
+s32 WPAD_ScanPads()
 {
 	return WPAD_ReadPending(WPAD_CHAN_ALL, NULL);
 }

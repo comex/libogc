@@ -136,7 +136,7 @@ s32 WPAD_SetEventBufs(s32 chan, WPADData *bufs, u32 cnt);
 s32 WPAD_Disconnect(s32 chan);
 void WPAD_Shutdown();
 void WPAD_SetIdleTimeout(u32 seconds);
-u32 WPAD_ScanPads();
+s32 WPAD_ScanPads();
 s32 WPAD_Rumble(s32 chan, int status);
 s32 WPAD_SetIdleThresholds(s32 chan, s32 btns, s32 ir, s32 accel, s32 js);
 WPADData *WPAD_Data(int chan);

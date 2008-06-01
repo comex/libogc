@@ -324,17 +324,24 @@ typedef struct accel_t {
 typedef struct ir_dot_t {
 	ubyte visible;					/**< if the IR source is visible		*/
 
-	unsigned int x;					/**< interpolated X coordinate			*/
-	unsigned int y;					/**< interpolated Y coordinate			*/
-
 	short rx;						/**< raw X coordinate (0-1023)			*/
 	short ry;						/**< raw Y coordinate (0-767)			*/
-
-	ubyte order;						/**< increasing order by x-axis value	*/
 
 	ubyte size;						/**< size of the IR dot (0-15)			*/
 } ir_dot_t;
 
+
+typedef struct fdot_t {
+	float x,y;
+} fdot_t;
+
+typedef struct sb_t {
+	fdot_t dots[2];
+	fdot_t acc_dots[2];
+	fdot_t rot_dots[2];
+	float angle;
+	float off_angle;
+} sb_t;
 
 /**
  *	@enum aspect_t
@@ -354,24 +361,30 @@ typedef struct ir_t {
 	struct ir_dot_t dot[4];			/**< IR dots							*/
 	ubyte num_dots;					/**< number of dots at this time		*/
 
-	enum aspect_t aspect;			/**< aspect ratio of the screen			*/
-
-	enum ir_position_t pos;			/**< IR sensor bar position				*/
-
-	unsigned int vres[2];			/**< IR virtual screen resolution		*/
-	int offset[2];					/**< IR XY correction offset			*/
 	int state;						/**< keeps track of the IR state		*/
 
-	int valid;						/**< is the position valid? */
+	int raw_valid;					/**< is the raw position valid? 		*/
+	sb_t sensorbar;					/**< sensor bar, detected or guessed	*/
+	float ax;						/**< raw X coordinate					*/
+	float ay;						/**< raw Y coordinate					*/
+	float distance;					/**< pixel width of the sensor bar		*/
+	float z;						/**< calculated distance in meters		*/
+	float angle;					/**< angle of the wiimote to the sensor bar*/
 
-	int ax;							/**< absolute X coordinate				*/
-	int ay;							/**< absolute Y coordinate				*/
+	int smooth_valid;				/**< is the smoothed position valid? 	*/
+	float sx;						/**< smoothed X coordinate				*/
+	float sy;						/**< smoothed Y coordinate				*/
+	float error_cnt;				/**< error count, for smoothing algorithm*/
+	float glitch_cnt;				/**< glitch count, same					*/
 
-	int x;							/**< calculated X coordinate			*/
-	int y;							/**< calculated Y coordinate			*/
+	int valid;						/**< is the bounded position valid? 	*/
+	float x;						/**< bounded X coordinate				*/
+	float y;						/**< bounded Y coordinate				*/
+	enum aspect_t aspect;			/**< aspect ratio of the screen			*/
+	enum ir_position_t pos;			/**< IR sensor bar position				*/
+	unsigned int vres[2];			/**< IR virtual screen resolution		*/
+	int offset[2];					/**< IR XY correction offset			*/
 
-	float distance;					/**< pixel distance between first 2 dots*/
-	float z;						/**< calculated distance				*/
 } ir_t;
 
 
