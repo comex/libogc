@@ -139,7 +139,8 @@ OGCOBJ		:=	\
 			depackrnc1.o dsp.o si.o tdf.o ipc.o ogc_crt0.o \
 			console_font_8x16.o timesupp.o lock_supp.o newlibc.o usbgecko.o \
 			sbrk.o malloc_lock.o kprintf.o stm.o ios.o es.o isfs.o usb.o network_common.o \
-			sdgecko_io.o sdgecko_buf.o argv.o network_wii.o wiisd.o conf.o usbstorage.o
+			sdgecko_io.o sdgecko_buf.o argv.o network_wii.o wiisd.o conf.o usbstorage.o \
+			texconv.o
 
 #---------------------------------------------------------------------------------
 MODOBJ		:=	freqtab.o mixer.o modplay.o semitonetab.o gcmodplay.o
@@ -209,7 +210,7 @@ wii: gc/ogc/libversion.h
 	@[ -d $(LIBS)/wii ] || mkdir -p $(LIBS)/wii
 	@[ -d $(DEPS)/wii ] || mkdir -p $(DEPS)/wii
 	@[ -d wii ] || mkdir -p wii
-	@$(MAKE) PLATFORM=cube libs -C cube -f $(CURDIR)/Makefile
+	@$(MAKE) PLATFORM=wii libs -C wii -f $(CURDIR)/Makefile
 
 #---------------------------------------------------------------------------------
 cube: gc/ogc/libversion.h
@@ -218,7 +219,7 @@ cube: gc/ogc/libversion.h
 	@[ -d $(LIBS)/cube ] || mkdir -p $(LIBS)/cube
 	@[ -d $(DEPS)/cube ] || mkdir -p $(DEPS)/cube
 	@[ -d cube ] || mkdir -p cube
-	@$(MAKE) PLATFORM=wii libs -C wii -f $(CURDIR)/Makefile
+	@$(MAKE) PLATFORM=cube libs -C cube -f $(CURDIR)/Makefile
 
 
 #---------------------------------------------------------------------------------
