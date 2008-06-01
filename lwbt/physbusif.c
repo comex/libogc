@@ -47,40 +47,6 @@ static s32 __issue_intrread();
 
 extern u32 __IPC_ClntInit();
 
-char ascii(char s) {
-	if(s < 0x20) return '.';
-	if(s > 0x7E) return '.';
-	return s;
-}
-
-void hexdump(void *d, int len)
-{
-	u8 *data;
-	int off=0;
-	int i;
-	data = (u8*)d;
-	while(off<len) {
-		printf("%08x  ",off);
-		for(i=0; i<8; i++) {
-			if((i+off)>=len) {
-				printf("   ");
-			} else {
-				printf("%02x ",data[off+i]);
-			}
-		}
-		printf(" ");
-		for(i=0; i<8; i++) {
-			if((i+off)>=len) {
-				printf(" ");
-			} else {
-				printf("%c",ascii(data[off+i]));
-			}
-		}
-		printf("\n");
-		off +=8;
-	}
-}
-
 static s32 __usb_closeCB(s32 result,void *usrdata)
 {
 	__usbdev.fd = -1;
@@ -166,10 +132,7 @@ static s32 __issue_intrread()
 	u8 *ptr;
 	struct usbtxbuf *buf;
 
-	if(__usbdev.openstate!=0x0002) {
-		printf("__issue_intrread: if closed\n");
-		return IPC_OK;
-	}
+	if(__usbdev.openstate!=0x0002) return IPC_OK;
 
 	buf = (struct usbtxbuf*)btmemb_alloc(&ctrlbufs);
 	if(buf!=NULL) {
@@ -191,10 +154,7 @@ static s32 __issue_bulkread()
 	u8 *ptr;
 	struct usbtxbuf *buf;
 
-	if(__usbdev.openstate!=0x0002) {
-		printf("__issue_bulkread: if closed\n");
-		return IPC_OK;
-	}
+	if(__usbdev.openstate!=0x0002) return IPC_OK;
 
 	buf = (struct usbtxbuf*)btmemb_alloc(&aclbufs);
 	if(buf!=NULL) {
