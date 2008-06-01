@@ -16,6 +16,8 @@ void wiiuse_send_next_command(struct wiimote_t *wm)
 {
 	struct cmd_blk_t *cmd = wm->cmd_head;
 
+	//printf("wiiuse_send_next_command(%p) : %p\n",wm,cmd);
+
 	if(!wm || !WIIMOTE_IS_CONNECTED(wm)) return;
 
 	if(!cmd) return;
@@ -23,6 +25,8 @@ void wiiuse_send_next_command(struct wiimote_t *wm)
 
 	cmd->state = CMD_SENT;
 	if(WIIMOTE_IS_SET(wm,WIIMOTE_STATE_RUMBLE)) cmd->data[1] |= 0x01;
+
+	//printf("wiiuse_send_next_command() : sent\n");
 
 	wiiuse_io_write(wm,cmd->data,cmd->len);
 }
@@ -37,6 +41,7 @@ static __inline__ void __wiiuse_push_command(struct wiimote_t *wm,struct cmd_blk
 	cmd->state = CMD_READY;
 
 	_CPU_ISR_Disable(level);
+	//printf("wiiuse_push_command(%p,%p): queue at %p,%p\n",wm,cmd,wm->cmd_head,wm->cmd_tail);
 	if(wm->cmd_head==NULL) {
 		wm->cmd_head = wm->cmd_tail = cmd;
 		wiiuse_send_next_command(wm);
@@ -154,12 +159,12 @@ void wiiuse_motion_sensing(struct wiimote_t* wm, int status) {
  */
 void wiiuse_toggle_rumble(struct wiimote_t* wm) 
 {
-	if (!wm)	return;
+	if (!wm) return;
 
 	WIIMOTE_TOGGLE_STATE(wm, WIIMOTE_STATE_RUMBLE);
 	if(!WIIMOTE_IS_SET(wm,WIIMOTE_STATE_HANDSHAKE_COMPLETE)) return;
 
-	wiiuse_status(wm,NULL);
+	wiiuse_set_leds(wm,wm->leds,NULL);
 }
 
 /**
@@ -170,12 +175,12 @@ void wiiuse_toggle_rumble(struct wiimote_t* wm)
  */
 void wiiuse_rumble(struct wiimote_t* wm, int status) 
 {
-	if (status) WIIMOTE_ENABLE_STATE(wm, WIIMOTE_STATE_RUMBLE);
-	else WIIMOTE_DISABLE_STATE(wm, WIIMOTE_STATE_RUMBLE);
+	if (status && WIIMOTE_IS_SET(wm,WIIMOTE_STATE_RUMBLE))
+		return;
+	if (!status && !WIIMOTE_IS_SET(wm,WIIMOTE_STATE_RUMBLE))
+		return;
 
-	if(!WIIMOTE_IS_SET(wm,WIIMOTE_STATE_HANDSHAKE_COMPLETE)) return;
-
-	wiiuse_status(wm,NULL);
+	wiiuse_toggle_rumble(wm);
 }
 
 void wiiuse_set_leds(struct wiimote_t *wm,int leds,cmd_blk_cb cb)
@@ -225,6 +230,7 @@ void wiiuse_status(struct wiimote_t *wm,cmd_blk_cb cb)
 
 	if(!wm || !WIIMOTE_IS_CONNECTED(wm)) return;
 	
+	//printf("wiiuse_status(%p,%p)\n",wm,cb);
 	buf = 0x00;
 	wiiuse_sendcmd(wm,WM_CMD_CTRL_STATUS,&buf,1,cb);
 }
@@ -233,6 +239,8 @@ int wiiuse_read_data(struct wiimote_t *wm,ubyte *buffer,uint addr,uword len,cmd_
 {
 	struct op_t *op;
 	struct cmd_blk_t *cmd;
+
+	//printf("wiiuse_read_data(%p, %p, 0x%x, 0x%x, %p)\n", wm, buffer, addr, len, cb);
 
 	if(!wm || !WIIMOTE_IS_CONNECTED(wm)) return 0;
 	if(!buffer || !len) return 0;
@@ -250,7 +258,6 @@ int wiiuse_read_data(struct wiimote_t *wm,ubyte *buffer,uint addr,uword len,cmd_
 	op->readdata.addr = BIG_ENDIAN_LONG(addr);
 	op->readdata.size = BIG_ENDIAN_SHORT(len);
 	__wiiuse_push_command(wm,cmd);
-
 	return 1;
 }
 
