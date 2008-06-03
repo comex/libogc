@@ -167,11 +167,14 @@ s32 USBStorage_Deinitialize()
 
 static s32 __send_cbw(usbstorage_handle *dev, u8 lun, u32 len, u8 flags, const u8 *cb, u8 cbLen)
 {
+	u8 *cbw = NULL;
 	s32 retval = USBSTORAGE_OK;
-	STACK_ALIGN(u8,cbw,CBW_SIZE,32);
 
 	if(cbLen == 0 || cbLen > 16)
 		return IPC_EINVAL;
+	
+	cbw = iosAlloc(hId,CBW_SIZE);
+	if(cbw==NULL) return IPC_ENOMEM;
 
 	memset(cbw, 0, CBW_SIZE);
 
@@ -197,40 +200,53 @@ static s32 __send_cbw(usbstorage_handle *dev, u8 lun, u32 len, u8 flags, const u
 	else if(retval > 0)
 		retval = USBSTORAGE_ESHORTWRITE;
 
+	if(cbw!=NULL) iosFree(hId,cbw);
 	return retval;
 }
 
 static s32 __read_csw(usbstorage_handle *dev, u8 *status, u32 *dataResidue)
 {
+	u8 *csw = NULL;
 	s32 retval = USBSTORAGE_OK;
 	u32 signature, tag, _dataResidue, _status;
-	STACK_ALIGN(u8,csw,CSW_SIZE,32);
+
+	csw = iosAlloc(hId,CSW_SIZE);
+	if(csw==NULL) return IPC_ENOMEM;
 
 	memset(csw, 0, CSW_SIZE);
 
 	retval = __USB_BlkMsgTimeout(dev, dev->ep_in, CSW_SIZE, csw);
 	if(retval == CSW_SIZE)
 		retval = USBSTORAGE_OK;
-	else if(retval > 0)
-		return USBSTORAGE_ESHORTREAD;
-	else
-		return retval;
+	else if(retval > 0) {
+		retval = USBSTORAGE_ESHORTREAD;
+		goto free_and_error;
+	} else 
+		goto free_and_error;
 
 	signature = __lwbrx(csw, 0);
 	tag = __lwbrx(csw, 4);
 	_dataResidue = __lwbrx(csw, 8);
 	_status = csw[12];
 
-	if(signature != CSW_SIGNATURE) return USBSTORAGE_ESIGNATURE;
+	if(signature != CSW_SIGNATURE) {
+		retval = USBSTORAGE_ESIGNATURE;
+		goto free_and_error;
+	}
 
 	if(dataResidue != NULL)
 		*dataResidue = _dataResidue;
 	if(status != NULL)
 		*status = _status;
 
-	if(tag != dev->tag) return USBSTORAGE_ETAG;
+	if(tag != dev->tag) {
+		retval = USBSTORAGE_ETAG;
+		goto free_and_error;
+	}
 	dev->tag++;
 
+free_and_error:
+	if(csw!=NULL) iosFree(hId,csw);
 	return retval;
 }
 
@@ -428,14 +444,16 @@ end:
 
 s32 USBStorage_Open(usbstorage_handle *dev, const char *bus, u16 vid, u16 pid)
 {
-	u8 *response_buffer = NULL;
 	s32 retval = -1;
-	u8 conf;
+	u8 conf,*max_lun = NULL;
 	u32 iConf, iInterface, iEp;
 	usb_devdesc udd;
 	usb_configurationdesc *ucd;
 	usb_interfacedesc *uid;
 	usb_endpointdesc *ued;
+
+	max_lun = iosAlloc(hId,1);
+	if(max_lun==NULL) return IPC_ENOMEM;
 
 	memset(dev, 0, sizeof(*dev));
 
@@ -448,11 +466,7 @@ s32 USBStorage_Open(usbstorage_handle *dev, const char *bus, u16 vid, u16 pid)
 	retval = USB_OpenDevice(bus, vid, pid, &dev->usb_fd);
 	if(retval < 0)
 		goto free_and_return;
-	
-	response_buffer = iosAlloc(hId, 1);
-	if(response_buffer == NULL)
-		goto free_and_return;
-	
+
 	retval = USB_GetDescriptors(dev->usb_fd, &udd);
 	if(retval < 0)
 		goto free_and_return;
@@ -520,12 +534,12 @@ found:
 		goto free_and_return;
 
 	LWP_MutexLock(dev->lock);
-	retval = __USB_CtrlMsgTimeout(dev, (USB_CTRLTYPE_DIR_DEVICE2HOST | USB_CTRLTYPE_TYPE_CLASS | USB_CTRLTYPE_REC_INTERFACE), USBSTORAGE_GET_MAX_LUN, 0, dev->interface, 1, response_buffer);
+	retval = __USB_CtrlMsgTimeout(dev, (USB_CTRLTYPE_DIR_DEVICE2HOST | USB_CTRLTYPE_TYPE_CLASS | USB_CTRLTYPE_REC_INTERFACE), USBSTORAGE_GET_MAX_LUN, 0, dev->interface, 1, max_lun);
 	LWP_MutexUnlock(dev->lock);
 	if(retval < 0)
 		dev->max_lun = 1;
 	else
-		dev->max_lun = *response_buffer;
+		dev->max_lun = *max_lun;
 
 	
 	if(retval == USBSTORAGE_ETIMEDOUT)
@@ -553,8 +567,7 @@ found:
 	USB_ClearHalt(dev->usb_fd, dev->ep_out);
 
 free_and_return:
-	if(response_buffer != NULL)
-		iosFree(hId, response_buffer);
+	if(max_lun!=NULL) iosFree(hId, max_lun);
 	if(retval < 0)
 	{
 		LWP_MutexDestroy(dev->lock);
@@ -613,7 +626,7 @@ s32 USBStorage_ReadCapacity(usbstorage_handle *dev, u8 lun, u32 *sector_size, u3
 	u8 cmd[] = {SCSI_READ_CAPACITY, lun << 5};
 	u8 response[8];
 
-	retval = __cycle(dev, lun, response, 8, cmd, 1, 0, NULL, NULL);
+	retval = __cycle(dev, lun, response, 8, cmd, 2, 0, NULL, NULL);
 	if(retval >= 0)
 	{
 		if(n_sectors != NULL)
@@ -642,7 +655,7 @@ s32 USBStorage_Read(usbstorage_handle *dev, u8 lun, u32 sector, u16 n_sectors, u
 		n_sectors,
 		0
 		};
-	if(lun >= dev->max_lun || dev->sector_size[lun] == 0 || (u32)buffer % 32)
+	if(lun >= dev->max_lun || dev->sector_size[lun] == 0)
 		return IPC_EINVAL;
 	retval = __cycle(dev, lun, buffer, n_sectors * dev->sector_size[lun], cmd, sizeof(cmd), 0, &status, NULL);
 	if(retval > 0 && status != 0)
@@ -666,7 +679,7 @@ s32 USBStorage_Write(usbstorage_handle *dev, u8 lun, u32 sector, u16 n_sectors, 
 		n_sectors,
 		0
 		};
-	if(lun >= dev->max_lun || dev->sector_size[lun] == 0 || (u32)buffer % 32)
+	if(lun >= dev->max_lun || dev->sector_size[lun] == 0)
 		return IPC_EINVAL;
 	retval = __cycle(dev, lun, (u8 *)buffer, n_sectors * dev->sector_size[lun], cmd, sizeof(cmd), 1, &status, NULL);
 	if(retval > 0 && status != 0)
