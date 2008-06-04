@@ -518,8 +518,10 @@ void CON_Init(void *framebuffer,int xstart,int ystart,int xres,int yres,int stri
 
 s32 CON_InitEx(GXRModeObj *rmode, s32 conXOrigin,s32 conYOrigin,s32 conWidth,s32 conHeight)
 {
-	if(_console_buffer) return 0;
-
+	VIDEO_SetPostRetraceCallback(NULL);
+	if(_console_buffer)
+		free(_console_buffer);
+	
 	_console_buffer = malloc(conWidth*conHeight*VI_DISPLAY_PIX_SZ);
 	if(!_console_buffer) return -1;
 

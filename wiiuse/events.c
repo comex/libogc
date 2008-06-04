@@ -102,8 +102,6 @@ static void event_status(struct wiimote_t *wm,ubyte *msg)
 	int led[4]= {0};
 	struct cmd_blk_t *cmd = wm->cmd_head;
 
-	//printf("event_status()\n");
-
 	wiiuse_pressed_buttons(wm,msg);
 
 	wm->event = WIIUSE_STATUS;

@@ -18,17 +18,14 @@ void wiiuse_handshake(struct wiimote_t *wm,ubyte *data,uword len)
 
 	switch(wm->handshake_state) {
 		case 0:
-			//printf("wiiuse_handshake: state 0\n");
 			wm->handshake_state++;
 
 			wiiuse_set_leds(wm,WIIMOTE_LED_NONE,NULL);
 
 			buf = __lwp_wkspace_allocate(sizeof(ubyte)*8);
-			//printf("wiiuse_handshake: buf %p\n",buf);
 			wiiuse_read_data(wm,buf,WM_MEM_OFFSET_CALIBRATION,7,wiiuse_handshake);
 			break;
 		case 1:
-			//printf("wiiuse_handshake: state 1\n");
 			wm->handshake_state++;
 
 			accel->cal_zero.x = data[0];
@@ -50,7 +47,6 @@ void wiiuse_handshake(struct wiimote_t *wm,ubyte *data,uword len)
 			break;
 
 	}
-	//printf("wiiuse_handshake: return\n");
 }
 
 void wiiuse_handshake_expansion_enabled(struct wiimote_t *wm,ubyte *data,uword len)
