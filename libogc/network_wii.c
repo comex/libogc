@@ -28,7 +28,8 @@ distribution.
 #if defined(HW_RVL)
 
 
-#define MAX_IP_RETRIES 100
+#define MAX_IP_RETRIES		100
+#define MAX_INIT_RETRIES	20
 
 //#define DEBUG_NET
 
@@ -231,8 +232,7 @@ s32 NCDGetLinkStatus(void)
 	ncd_fd = _open_manage_fd();
 	if (ncd_fd < 0) return ncd_fd;
 	
-	ret = _net_convert_error(IOS_IoctlvFormat(__net_hid, ncd_fd, IOCTL_NCD_GETLINKSTATUS, 
-		":d", linkinfo, 0x20));
+	ret = _net_convert_error(IOS_IoctlvFormat(__net_hid, ncd_fd, IOCTL_NCD_GETLINKSTATUS, ":d", linkinfo, 0x20));
 	IOS_Close(ncd_fd);
 
   	if (ret < 0) debug_printf("NCDGetLinkStatus returned error %d\n", ret);
@@ -548,6 +548,7 @@ s32 net_sendto(s32 s, const void *data, s32 len, u32 flags, struct sockaddr *to,
 	ret = _net_convert_error(IOS_IoctlvFormat(__net_hid, net_ip_top_fd, IOCTLV_SO_SENDTO, "dd:", message_buf, len, params, sizeof(struct sendto_params)));
 	debug_printf("net_send retuned %d\n", ret);
 
+	if(message_buf!=NULL) iosFree(__net_hid,message_buf);
 	return ret;
 }
 
@@ -690,18 +691,20 @@ s32 net_fcntl(s32 s, u32 cmd, u32 flags)
 
 s32 if_config(char *local_ip, char *netmask, char *gateway,boolean use_dhcp)
 {
+	s32 i,ret;
 	struct in_addr hostip;
 
-	if ( use_dhcp != true ) return -1;
-	if ( net_init() < 0 ) return -1;
+	if ( use_dhcp != true ) return -EINVAL;
+	
+	for(i=0;i<MAX_INIT_RETRIES && (ret=net_init())==-EAGAIN;i++);
+	if(ret<0) return ret;
 
 	hostip.s_addr = net_gethostip();
-	if ( hostip.s_addr ) {
+	if ( local_ip!=NULL && hostip.s_addr ) {
 		strcpy(local_ip, inet_ntoa(hostip));
-		return 0;
 	}
 	
-	return -1;
+	return 0;
 	
 			
 }
