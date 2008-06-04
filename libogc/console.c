@@ -518,6 +518,7 @@ void CON_Init(void *framebuffer,int xstart,int ystart,int xres,int yres,int stri
 
 s32 CON_InitEx(GXRModeObj *rmode, s32 conXOrigin,s32 conYOrigin,s32 conWidth,s32 conHeight)
 {
+	VIDEO_SetPostRetraceCallback(NULL);
 	if(_console_buffer)
 		free(_console_buffer);
 	
