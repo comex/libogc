@@ -219,6 +219,7 @@ s32 ES_GetTMDView(u64 titleID, u8 *data, u32 size);
 s32 ES_GetNumSharedContents(u32 *cnt);
 s32 ES_GetSharedContents(sha1 *contents, u32 cnt);
 s32 ES_LaunchTitle(u64 titleID, const tikview *view);
+s32 ES_LaunchTitleBackground(u64 titleID, const tikview *view);
 s32 ES_Identify(const signed_blob *certificates, u32 certificates_size, const signed_blob *tmd, u32 tmd_size, const signed_blob *ticket, u32 ticket_size, u32 *keyid);
 s32 ES_AddTicket(const signed_blob *tik, u32 tik_size, const signed_blob *certificates, u32 certificates_size, const signed_blob *crl, u32 crl_size);
 s32 ES_DeleteTicket(const tikview *view);

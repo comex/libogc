@@ -280,8 +280,6 @@ s32 __attribute__((weak)) __IOS_LoadStartupIOS()
 	return 0;
 }
 
-
-
 s32 IOS_ReloadIOS(int version)
 {
 	int ret = 0;
@@ -304,6 +302,5 @@ s32 IOS_ReloadIOS(int version)
 	if(res < 0) ret = res;
 	return ret;
 }
-
 
 #endif /* defined(HW_RVL) */
