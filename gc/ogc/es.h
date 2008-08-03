@@ -216,8 +216,6 @@ s32 ES_GetTitleContentsCount(u64 titleID, u32 *num);
 s32 ES_GetTitleContents(u64 titleID, u8 *data, u32 size);
 s32 ES_GetTMDViewSize(u64 titleID, u32 *size);
 s32 ES_GetTMDView(u64 titleID, u8 *data, u32 size);
-s32 ES_GetStoredTMDSize(u64 titleID, u32 *size);
-s32 ES_GetStoredTMD(u64 titleID, signed_blob *stmd, u32 size);
 s32 ES_GetNumSharedContents(u32 *cnt);
 s32 ES_GetSharedContents(sha1 *contents, u32 cnt);
 s32 ES_LaunchTitle(u64 titleID, const tikview *view);
