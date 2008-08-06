@@ -234,6 +234,35 @@ s32 ES_LaunchTitle(u64 titleID, const tikview *view)
 	return res;
 }
 
+s32 ES_LaunchTitleBackground(u64 titleID, const tikview *view)
+{
+
+	s32 res;
+	STACK_ALIGN(u64,title,1,32);
+	STACK_ALIGN(ioctlv,vectors,2,32);
+
+	if(__es_fd<0) return ES_ENOTINIT;
+	if(!view) return ES_EINVAL;
+	if(!ISALIGNED(view)) return ES_EALIGN;
+
+#ifdef DEBUG_ES
+	printf("ES LaunchTitleBackground %d %016llx 0x%08x 0x%02x\n",__es_fd,titleID,(u32)view,sizeof(tikview));
+#endif
+
+	*title = titleID;
+	vectors[0].data = (void*)title;
+	vectors[0].len = sizeof(u64);
+	vectors[1].data = (void*)view;
+	vectors[1].len = sizeof(tikview);
+	res = IOS_IoctlvRebootBackground(__es_fd,IOCTL_ES_LAUNCH,2,0,vectors);
+
+#ifdef DEBUG_ES
+	printf(" =%d\n",res);
+#endif
+
+	return res;
+}
+
 s32 ES_GetNumTicketViews(u64 titleID, u32 *cnt)
 {
 	s32 ret;
