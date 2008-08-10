@@ -180,6 +180,8 @@ typedef struct _cert_rsa4096 {
 	((*(x))==ES_SIG_RSA2048) ? sizeof(sig_rsa2048) : ( \
 	((*(x))==ES_SIG_RSA4096) ? sizeof(sig_rsa4096) : 0 ))
 
+#define SIGNATURE_SIG(x) (((u8*)x)+4)
+
 #define IS_VALID_CERT(x) ((((x)->cert_type)==ES_CERT_RSA2048) || (((x)->cert_type)==ES_CERT_RSA4096))
 
 #define CERTIFICATE_SIZE(x) (\
