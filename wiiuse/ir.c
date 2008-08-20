@@ -480,10 +480,6 @@ enum {
 #define WMAX(x,y) ((x>y)?(x):(y))
 #define WMIN(x,y) ((x<y)?(x):(y))
 
-#undef WIIUSE_DEBUG
-#define WIIUSE_DEBUG printf
-
-
 /**
  *	@brief Interpret IR data into more user friendly variables.
  *
