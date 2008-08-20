@@ -538,4 +538,12 @@ void CON_GetMetrics(int *cols, int *rows)
 	}
 }
 
+void CON_GetPosition(int *col, int *row)
+{
+	if(curr_con) {
+		*col = curr_con->cursor_col;
+		*row = curr_con->cursor_row;
+	}
+}
+
 

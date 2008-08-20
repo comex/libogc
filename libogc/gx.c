@@ -16,6 +16,7 @@
 
 #define GX_FINISH		2
 #define BIG_NUMBER		(1024*1024)
+#define LARGE_NUMBER	-9.9999998e+017
 #define WGPIPE			(0xCC008000)
 
 #define _SHIFTL(v, s, w)	\
@@ -553,22 +554,9 @@ static void __GX_InitGX()
 		{0,1,0,0},
 		{0,0,1,0}
 	};
-
-	switch(VIDEO_GetCurrentTvMode()) {
-		case VI_NTSC:
-			rmode = &TVNtsc480IntDf;
-			break;
-		case VI_PAL:
-			rmode = &TVPal528IntDf;
-			break;
-		case VI_MPAL:
-			rmode = &TVMpal480IntDf;
-			break;
-		default:
-			rmode = &TVNtsc480IntDf;
-			break;
-	}
 	
+	rmode = VIDEO_GetPreferredMode(NULL);
+
 	GX_SetCopyClear((GXColor)BLACK,0xffffff);
 	GX_SetTexCoordGen(GX_TEXCOORD0,GX_TG_MTX2x4,GX_TG_TEX0,GX_IDENTITY);
 	GX_SetTexCoordGen(GX_TEXCOORD1,GX_TG_MTX2x4,GX_TG_TEX1,GX_IDENTITY);
@@ -3443,14 +3431,14 @@ void GX_SetTevColorS10(u8 tev_regid,GXColorS10 color)
 	GX_LOAD_BP_REG(reg);
 }
 
-void GX_SetTevKColor(u8 tev_regid,GXColor color)
+void GX_SetTevKColor(u8 tev_kregid,GXColor color)
 {
 	u32 reg;
 
-	reg = (_SHIFTL((0xe0+(tev_regid<<1)),24,8)|(_SHIFTL(1,23,1))|(_SHIFTL(color.a,12,8))|(color.r&0xff));
+	reg = (_SHIFTL((0xe0+(tev_kregid<<1)),24,8)|(_SHIFTL(1,23,1))|(_SHIFTL(color.a,12,8))|(color.r&0xff));
 	GX_LOAD_BP_REG(reg);
 
-	reg = (_SHIFTL((0xe1+(tev_regid<<1)),24,8)|(_SHIFTL(1,23,1))|(_SHIFTL(color.g,12,8))|(color.b&0xff));
+	reg = (_SHIFTL((0xe1+(tev_kregid<<1)),24,8)|(_SHIFTL(1,23,1))|(_SHIFTL(color.g,12,8))|(color.b&0xff));
 	GX_LOAD_BP_REG(reg);
 	
 	//this two calls should obviously flush the Write Gather Pipe.
@@ -3458,14 +3446,14 @@ void GX_SetTevKColor(u8 tev_regid,GXColor color)
 	GX_LOAD_BP_REG(reg);
 }
 
-void GX_SetTevKColorS10(u8 tev_regid,GXColorS10 color)
+void GX_SetTevKColorS10(u8 tev_kregid,GXColorS10 color)
 {
 	u32 reg;
 
-	reg = (_SHIFTL((0xe0+(tev_regid<<1)),24,8)|(_SHIFTL(1,23,1))|(_SHIFTL(color.a,12,11))|(color.r&0x7ff));
+	reg = (_SHIFTL((0xe0+(tev_kregid<<1)),24,8)|(_SHIFTL(1,23,1))|(_SHIFTL(color.a,12,11))|(color.r&0x7ff));
 	GX_LOAD_BP_REG(reg);
 
-	reg = (_SHIFTL((0xe1+(tev_regid<<1)),24,8)|(_SHIFTL(1,23,1))|(_SHIFTL(color.g,12,11))|(color.b&0x7ff));
+	reg = (_SHIFTL((0xe1+(tev_kregid<<1)),24,8)|(_SHIFTL(1,23,1))|(_SHIFTL(color.g,12,11))|(color.b&0x7ff));
 	GX_LOAD_BP_REG(reg);
 	
 	//this two calls should obviously flush the Write Gather Pipe.
@@ -3745,7 +3733,7 @@ void GX_SetNumIndStages(u8 nstages)
 	_gx[0x09] |= 0x0006;
 }
 
-void GX_SetIndTexMatrix(u8 indtexmtx,const f32 offset_mtx[2][3],s8 scale_exp)
+void GX_SetIndTexMatrix(u8 indtexmtx,f32 offset_mtx[2][3],s8 scale_exp)
 {
 	u32 ma,mb;
 	u32 val,s,idx;
@@ -3833,38 +3821,92 @@ void GX_SetIndTexCoordScale(u8 indtexid,u8 scale_s,u8 scale_t)
 	}
 }
 
+void GX_SetTevIndTile(u8 tevstage,u8 indtexid,u16 tilesize_x,u16 tilesize_y,u16 tilespacing_x,u16 tilespacing_y,u8 indtexfmt,u8 indtexmtx,u8 bias_sel,u8 alpha_sel)
+{
+	s32 wrap_s,wrap_t;
+	f32 offset_mtx[2][3];
+	f64 fdspace_x,fdspace_y;
+	u32 fbuf_x[2] = { 0x43300000,tilespacing_x };
+	u32 fbuf_y[2] = { 0x43300000,tilespacing_y };
+
+	wrap_s = GX_ITW_OFF;
+	if(tilesize_x==0x0010) wrap_s = GX_ITW_16;
+	else if(tilesize_x==0x0020) wrap_s = GX_ITW_32;
+	else if(tilesize_x==0x0040) wrap_s = GX_ITW_64;
+	else if(tilesize_x==0x0080) wrap_s = GX_ITW_128;
+	else if(tilesize_x==0x0100) wrap_s = GX_ITW_256;
+
+	wrap_t = GX_ITW_OFF;
+	if(tilesize_y==0x0010) wrap_t = GX_ITW_16;
+	else if(tilesize_y==0x0020) wrap_t = GX_ITW_32;
+	else if(tilesize_y==0x0040) wrap_t = GX_ITW_64;
+	else if(tilesize_y==0x0080) wrap_t = GX_ITW_128;
+	else if(tilesize_y==0x0100) wrap_t = GX_ITW_256;
+
+	fdspace_x = *(f64*)((void*)fbuf_x);
+	fdspace_y = *(f64*)((void*)fbuf_y);
+
+	offset_mtx[0][0] = (f32)((fdspace_x - 4503599627370496.0F)*0.00097656250F);
+	offset_mtx[0][1] = 0.0F;
+	offset_mtx[0][2] = 0.0F;
+	offset_mtx[1][0] = 0.0F;
+	offset_mtx[1][1] = (f32)((fdspace_y - 4503599627370496.0F)*0.00097656250F);
+	offset_mtx[1][2] = 0.0F;
+
+	GX_SetIndTexMatrix(indtexmtx,offset_mtx,10);
+	GX_SetTevIndirect(tevstage,indtexid,indtexfmt,bias_sel,indtexmtx,wrap_s,wrap_t,GX_FALSE,GX_TRUE,alpha_sel);
+}
+
 void GX_SetFog(u8 type,f32 startz,f32 endz,f32 nearz,f32 farz,GXColor col)
 {
     f32 A, B, B_mant, C, A_f;
     u32 b_expn, b_m, a_hex, c_hex,proj = 0;
 
 
-    // Calculate constants a, b, and c (TEV HW requirements).
-    if((farz==nearz) || (endz==startz)) {
-        // take care of the odd-ball case.
-        A = 0.0f;
-        B = 0.5f;
-        C = 0.0f;
-    } else {
-        A = (farz*nearz)/((farz-nearz)*(endz-startz));
-        B = farz/(farz-nearz);
-        C = startz/(endz-startz);
-    }
+  	proj = (u32)((type >> 3) & 0x01);
 
-    B_mant = B;
-    b_expn = 1;
-    while(B_mant>1.0) {
-        B_mant /= 2;
-        b_expn++;
-    }
+	// Calculate constants a, b, and c (TEV HW requirements).
+	if(proj) { // Orthographic Fog Type
+		if((farz==nearz) || (endz==startz)) {
+			// take care of the odd-ball case.
+			A_f = 0.0f;
+			C = 0.0f;
+		} else {
+			A = 1.0f/(endz-startz);
+			A_f = (farz-nearz) * A;
+			C = (startz-nearz) * A;
+		}
 
-    while((B_mant>0) && (B_mant<0.5)) {
-        B_mant *= 2;
-        b_expn--;
-    }
+		b_expn	= 0;
+		b_m		= 0;
+	} else { // Perspective Fog Type
+	  // Calculate constants a, b, and c (TEV HW requirements).
+		if((farz==nearz) || (endz==startz)) {
+			// take care of the odd-ball case.
+			A = 0.0f;
+			B = 0.5f;
+			C = 0.0f;
+		} else {
+			A = (farz*nearz)/((farz-nearz)*(endz-startz));
+			B = farz/(farz-nearz);
+			C = startz/(endz-startz);
+		}
 
-    A_f   = A/(1<<(b_expn));
-    b_m   = (u32)(B_mant * 8388638);
+		B_mant = B;
+		b_expn = 1;
+		while(B_mant>1.0) {
+			B_mant /= 2;
+			b_expn++;
+		}
+
+		while((B_mant>0) && (B_mant<0.5)) {
+			B_mant *= 2;
+			b_expn--;
+		}
+
+		A_f   = A/(1<<(b_expn));
+		b_m   = (u32)(B_mant * 8388638);
+	}
     a_hex = (*(u32*)((void*)&A_f));
     c_hex = (*(u32*)((void*)&C));
 
@@ -4232,9 +4274,9 @@ void GX_InitSpecularDirHA(GXLightObj *lit_obj,f32 nx,f32 ny,f32 nz,f32 hx,f32 hy
 {
     f32 px, py, pz;
 
-    px = -nx * BIG_NUMBER;
-    py = -ny * BIG_NUMBER;
-    pz = -nz * BIG_NUMBER;
+    px = (nx * LARGE_NUMBER);
+    py = (ny * LARGE_NUMBER);
+    pz = (nz * LARGE_NUMBER);
 
 	((f32*)lit_obj)[10] = px;
 	((f32*)lit_obj)[11] = py;
@@ -4253,14 +4295,16 @@ void GX_InitSpecularDir(GXLightObj *lit_obj,f32 nx,f32 ny,f32 nz)
     hx  = -nx;
     hy  = -ny;
     hz  = (-nz + 1.0f);
-    mag = 1.0f / sqrtf((hx * hx) + (hy * hy) + (hz * hz));
+	mag = ((hx * hx) + (hy * hy) + (hz * hz));
+	if(mag!=0.0f) mag = 1.0f / sqrtf(mag);
+
     hx *= mag;
     hy *= mag;
     hz *= mag;
 
-    px  = -nx * BIG_NUMBER;
-    py  = -ny * BIG_NUMBER;
-    pz  = -nz * BIG_NUMBER;
+    px  = (nx * LARGE_NUMBER);
+    py  = (ny * LARGE_NUMBER);
+    pz  = (nz * LARGE_NUMBER);
 	
 	((f32*)lit_obj)[10] = px;
 	((f32*)lit_obj)[11] = py;
@@ -4612,14 +4656,16 @@ void GX_ReadGPMetric(u32 *cnt0,u32 *cnt1)
 
 void GX_AdjustForOverscan(GXRModeObj *rmin,GXRModeObj *rmout,u16 hor,u16 ver)
 {
-	if(rmin!=rmin) memcpy(rmout,rmin,sizeof(GXRModeObj));
-	rmout->fbWidth -= ((hor<<1)&0xfffe);
-	rmout->efbHeight -= ((((ver<<1)&0xfffe)*rmin->efbHeight)/rmin->xfbHeight);
-	if(rmin->xfbMode==VI_XFBMODE_SF && !(rmin->viTVMode&VI_PROGRESSIVE)) rmout->xfbHeight -= ver;
-	else rmout->xfbHeight -= ((ver<<1)&0xfffe);
+	if(rmin!=rmout) memcpy(rmout,rmin,sizeof(GXRModeObj));
 
-	rmout->viWidth -= ((hor<<1)&0xfffe);
-	rmout->viHeight -= ((ver<<1)&0xfffe);
+	rmout->fbWidth = rmin->fbWidth-(hor<<1);
+	rmout->efbHeight = rmin->efbHeight-((rmin->efbHeight*(ver<<1))/rmin->xfbHeight);
+	if(rmin->xfbMode==VI_XFBMODE_SF && !(rmin->viTVMode&VI_PROGRESSIVE)) rmout->xfbHeight = rmin->xfbHeight-ver;
+	else rmout->xfbHeight = rmin->xfbHeight-(ver<<1);
+
+	rmout->viWidth = rmin->viWidth-(hor<<1);
+	if(rmin->viTVMode&VI_PROGRESSIVE) rmout->viHeight = rmin->viHeight-(ver<<2);
+	else rmout->viHeight = rmin->viHeight-(ver<<1);
 
 	rmout->viXOrigin += hor;
 	rmout->viYOrigin += ver;
@@ -4650,3 +4696,4 @@ f32 GX_GetYScaleFactor(u16 efbHeight,u16 xfbHeight)
 }
 
 #undef BIG_NUMBER
+#undef LARGE_NUMBER

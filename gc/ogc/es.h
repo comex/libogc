@@ -137,6 +137,8 @@ typedef struct _tmd {
 	u16 boot_index;
 	u16 fill3;
 	// content records follow
+	// C99 flexible array
+	tmd_content contents[];
 } __attribute__((packed)) tmd;
 
 typedef struct _cert_header {
@@ -167,7 +169,8 @@ typedef struct _cert_rsa4096 {
 } __attribute__((packed)) cert_rsa4096;
 
 #define TMD_SIZE(x) (((x)->num_contents)*sizeof(tmd_content) + sizeof(tmd))
-#define TMD_CONTENTS(x) ((tmd_content*)(((tmd*)(x))+1))
+// backwards compatibility
+#define TMD_CONTENTS(x) ((x)->contents)
 
 //TODO: add ECC stuff
 
@@ -176,6 +179,8 @@ typedef struct _cert_rsa4096 {
 #define SIGNATURE_SIZE(x) (\
 	((*(x))==ES_SIG_RSA2048) ? sizeof(sig_rsa2048) : ( \
 	((*(x))==ES_SIG_RSA4096) ? sizeof(sig_rsa4096) : 0 ))
+
+#define SIGNATURE_SIG(x) (((u8*)x)+4)
 
 #define IS_VALID_CERT(x) ((((x)->cert_type)==ES_CERT_RSA2048) || (((x)->cert_type)==ES_CERT_RSA4096))
 
