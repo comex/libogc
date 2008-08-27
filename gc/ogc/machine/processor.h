@@ -98,6 +98,18 @@
 #define _CPU_MSR_SET( _msr_value ) \
 { asm volatile ("mtmsr %0" : "=&r" ((_msr_value)) : "0" ((_msr_value))); }
 
+#define _CPU_FPR_Enable() \
+{ register u32 _val = 0; \
+	  asm volatile ("mfmsr %0; ori %0,%0,0x2000; mtmsr %0" : \
+					"=&r" (_val) : "0" (_val));\
+}
+
+#define _CPU_FPR_Disable() \
+{ register u32 _val = 0; \
+	  asm volatile ("mfmsr %0; rlwinm %0,%0,0,19,17; mtmsr %0" : \
+					"=&r" (_val) : "0" (_val));\
+}
+
 #define _CPU_ISR_Enable() \
 	{ register u32 _val = 0; \
 	  asm volatile ("mfmsr %0; ori %0,%0,0x8000; mtmsr %0" : \
@@ -116,9 +128,8 @@
 
 #define _CPU_ISR_Restore( _isr_cookie )  \
   { \
-     asm volatile ( "mtmsr %0" : \
-		   "=r" ((_isr_cookie)) : \
-                   "0" ((_isr_cookie))); \
+	if(_isr_cookie & MSR_EE) \
+		_CPU_ISR_Enable(); \
   }
 
 #define _CPU_ISR_Flash( _isr_cookie ) \
