@@ -74,7 +74,8 @@ distribution.
 
 #define USBSTORAGE_CYCLE_RETRIES	3
 
-#define	MAX_TRANSFER_SIZE		2048 // FIXME: arbitary limit taken from wii-linux usb host controller driver
+// this seems to be the highest size IOS allows without sending too few data
+#define	MAX_TRANSFER_SIZE		4096
 
 static heap_cntrl __heap;
 static u8 __heap_created = 0;
