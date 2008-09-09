@@ -1102,7 +1102,6 @@ void SYS_ResetSystem(s32 reset,u32 reset_code,s32 force_menu)
 	u32 level,ret = 0;
 	syssram *sram;
 
-	__lwp_thread_dispatchdisable();
 	__dsp_shutdown();
 
 	if(reset==SYS_SHUTDOWN) {
@@ -1123,6 +1122,7 @@ void SYS_ResetSystem(s32 reset,u32 reset_code,s32 force_menu)
 
 	LCDisable();
 
+	__lwp_thread_dispatchdisable();
 	if(reset==SYS_HOTRESET) {
 		__dohotreset(reset_code);
 	} else if(reset==SYS_RESTART) {
