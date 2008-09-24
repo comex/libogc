@@ -65,7 +65,8 @@ enum {
 enum {
 	CONF_REGION_JP = 0,
 	CONF_REGION_US,
-	CONF_REGION_EU
+	CONF_REGION_EU,
+	CONF_REGION_KR
 };
 
 enum {
