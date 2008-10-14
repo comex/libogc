@@ -117,7 +117,6 @@ void __thread_dispatch_fp()
 {
 	u32 level;
 	lwp_cntrl *exec;
-	u32 level;
 
 	_CPU_ISR_Disable(level);
 	exec = _thr_executing;

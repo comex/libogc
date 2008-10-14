@@ -276,9 +276,6 @@ s32 WII_LaunchTitleWithArgs(u64 titleID, int launchcode, ...)
 	const char *argv[256];
 	int argc = 1;
 	va_list args;
-	s32 res;
-	u32 numviews;
-	STACK_ALIGN(tikview,views,4,32);
 
 	if(!__initialized)
 		return WII_ENOTINIT;
