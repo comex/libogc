@@ -36,10 +36,8 @@ static __inline__ void __lwp_thread_dispatchinitialize()
 
 static __inline__ void __lwp_thread_dispatchenable()
 {
-	if((--_thread_dispatch_disable_level)==0) {
+	if((--_thread_dispatch_disable_level)==0)
 		__thread_dispatch();
-		_CPU_FPR_Disable();
-	}
 }
 
 static __inline__ void __lwp_thread_dispatchdisable()
