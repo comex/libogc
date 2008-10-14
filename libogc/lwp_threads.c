@@ -115,6 +115,7 @@ void __lwp_thread_delayended(void *arg)
 
 void __thread_dispatch_fp()
 {
+	u32 level;
 	lwp_cntrl *exec;
 	u32 level;
 
@@ -136,8 +137,8 @@ void __thread_dispatch()
 	u32 level;
 	lwp_cntrl *exec,*heir;
 
-	exec = _thr_executing;
 	_CPU_ISR_Disable(level);
+	exec = _thr_executing;
 	while(_context_switch_want==TRUE) {
 		heir = _thr_heir;
 		_thread_dispatch_disable_level = 1;
@@ -149,7 +150,7 @@ void __thread_dispatch()
 			exec->libc_reent = *__lwp_thr_libc_reent;
 			*__lwp_thr_libc_reent = heir->libc_reent;
 		}
-#ifdef _DEBUG
+#ifdef _LWPTHREADS_DEBUG
 		_cpu_context_switch_ex((void*)&exec->context,(void*)&heir->context);
 #else
 		_cpu_context_switch((void*)&exec->context,(void*)&heir->context);
@@ -591,8 +592,8 @@ void __lwp_thread_closeall()
 	for(i=0;i<LWP_MAXPRIORITIES;i++) {
 		flag = 0;
 		while((ptr=(lwp_cntrl*)__lwp_queue_getI(&_lwp_thr_ready[i]))!=NULL) {
-			if(ptr==_thr_executing) flag = 1;
-			else __lwp_thread_close(ptr);
+			if(ptr!=_thr_executing) __lwp_thread_close(ptr);
+			else flag = 1;
 		}
 		if(flag) __lwp_queue_appendI(&_lwp_thr_ready[i],&_thr_executing->object.node);
 	}
