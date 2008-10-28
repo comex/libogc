@@ -659,7 +659,6 @@ s32 ES_ImportBoot( const signed_blob *tik, u32 tik_size,
 	if(!ISALIGNED(content)) return ES_EALIGN;
 	
 	return IOS_IoctlvFormat(__es_hid, __es_fd, IOCTL_ES_IMPORTBOOT, "dddddd:", tik, tik_size, tik_certs, tik_certs_size, tmd, tmd_size, tmd_certs, tmd_certs_size, NULL, 0, content, content_size);
-
 }
 
 s32 ES_OpenContent(u16 index)

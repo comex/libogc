@@ -1925,7 +1925,6 @@ static void __VISetupEncoder(void)
 	oldTvStatus = tv;
 
 }
-
 #endif
 
 static inline void __getCurrentDisplayPosition(u32 *px,u32 *py)
@@ -2229,11 +2228,9 @@ void VIDEO_Init()
 
 	IRQ_Request(IRQ_PI_VI,__VIRetraceHandler,NULL);
 	__UnmaskIrq(IRQMASK(IRQ_PI_VI));
-
 #if defined(HW_RVL)
 	__VISetupEncoder();
 #endif
-	
 	_CPU_ISR_Restore(level);
 }
 
