@@ -63,6 +63,16 @@ void CON_GetMetrics(int *cols, int *rows);
  */
 void CON_GetPosition(int *cols, int *rows);
 
+/*!
+ * \fn CON_EnableGecko(int mode)
+ * \brief Enables or disable the USB gecko console.
+ *
+ * \param[in] mode EXI channel or -1 to disable the gecko console.
+ *
+ * \return none
+ */
+void CON_EnableGecko(int mode);
+
 #ifdef __cplusplus
 	}
 #endif

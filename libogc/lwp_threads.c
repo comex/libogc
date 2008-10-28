@@ -115,7 +115,7 @@ void __lwp_thread_delayended(void *arg)
 
 void __thread_dispatch_fp()
 {
-	unsigned long level;
+	u32 level;
 	lwp_cntrl *exec;
 
 	_CPU_ISR_Disable(level);

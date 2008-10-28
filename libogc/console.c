@@ -12,6 +12,7 @@
 
 #include "console.h"
 #include "consol.h"
+#include "usbgecko.h"
 
 #include <stdio.h>
 #include <sys/iosupport.h>
@@ -66,6 +67,8 @@ static u32 do_xfb_copy = FALSE;
 static struct _console_data_s stdcon;
 static struct _console_data_s *curr_con = NULL;
 static void *_console_buffer = NULL;
+
+static u32 __gecko_status = -1;
 
 extern u8 console_font_8x16[];
 
@@ -435,6 +438,9 @@ int __console_write(struct _reent *r,int fd,const char *ptr,int len)
 	console_data_s *con;
 	char chr;
 
+	if(__gecko_status != -1)
+		usb_sendbuffer_safe(__gecko_status, ptr, len);
+
 	if(!curr_con) return -1;
 	con = curr_con;
 	if(!tmp || len<=0) return -1;
@@ -546,4 +552,15 @@ void CON_GetPosition(int *col, int *row)
 	}
 }
 
+void CON_EnableGecko(int mode)
+{
+	if(mode != -1 && (mode > 1 || !usb_isgeckoalive(mode)))
+		mode = -1;
+	__gecko_status = mode;
 
+	if(__gecko_status != -1)
+	{
+		devoptab_list[STD_OUT] = &dotab_stdout;
+		devoptab_list[STD_ERR] = &dotab_stdout;
+	}
+}
