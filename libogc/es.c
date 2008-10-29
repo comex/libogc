@@ -75,7 +75,7 @@ distribution.
 #define IOCTL_ES_DIVERIFY				0x1C
 #define IOCTL_ES_GETTITLEDIR			0x1D
 #define IOCTL_ES_GETDEVICECERT			0x1E
-#define IOCTL_ES_IMPORTBOOT			0x1F
+#define IOCTL_ES_IMPORTBOOT				0x1F
 #define IOCTL_ES_GETTITLEID				0x20
 #define IOCTL_ES_SETUID					0x21
 #define IOCTL_ES_DELETETITLECONTENT		0x22
@@ -640,11 +640,7 @@ s32 ES_AddTitleCancel(void)
 	return IOS_IoctlvFormat(__es_hid, __es_fd, IOCTL_ES_ADDTITLECANCEL, "");
 }
 
-s32 ES_ImportBoot( const signed_blob *tik, u32 tik_size,
-                   const signed_blob *tik_certs, u32 tik_certs_size, 
-                   const signed_blob *tmd, u32 tmd_size,
-                   const signed_blob *tmd_certs, u32 tmd_certs_size,
-                   const u8 *content, u32 content_size )
+s32 ES_ImportBoot(const signed_blob *tik, u32 tik_size,const signed_blob *tik_certs,u32 tik_certs_size,const signed_blob *tmd,u32 tmd_size,const signed_blob *tmd_certs,u32 tmd_certs_size,const u8 *content,u32 content_size)
 {
 	if(__es_fd<0) return ES_ENOTINIT;
 	if(!tik || !tik_size) return ES_EINVAL;
