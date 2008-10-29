@@ -69,6 +69,7 @@ static struct _console_data_s *curr_con = NULL;
 static void *_console_buffer = NULL;
 
 static u32 __gecko_status = -1;
+static u32 __gecko_safe = 0;
 
 extern u8 console_font_8x16[];
 
@@ -438,8 +439,12 @@ int __console_write(struct _reent *r,int fd,const char *ptr,int len)
 	console_data_s *con;
 	char chr;
 
-	if(__gecko_status != -1)
-		usb_sendbuffer_safe(__gecko_status, ptr, len);
+	if(__gecko_status >= 0) {
+		if(__gecko_safe)
+			usb_sendbuffer_safe(__gecko_status, ptr, len);
+		else
+			usb_sendbuffer(__gecko_status, ptr, len);
+	}
 
 	if(!curr_con) return -1;
 	con = curr_con;
@@ -552,11 +557,12 @@ void CON_GetPosition(int *col, int *row)
 	}
 }
 
-void CON_EnableGecko(int mode)
+void CON_EnableGecko(int channel, int safe)
 {
-	if(mode != -1 && (mode > 1 || !usb_isgeckoalive(mode)))
-		mode = -1;
-	__gecko_status = mode;
+	if(channel != -1 && (channel > 1 || !usb_isgeckoalive(channel)))
+		channel = -1;
+	__gecko_status = channel;
+	__gecko_safe = safe;
 
 	if(__gecko_status != -1)
 	{
