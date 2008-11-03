@@ -262,7 +262,7 @@ static __inline__ void __lwp_syswd_free(alarm_st *alarm)
 	__lwp_objmgr_free(&sys_alarm_objects,&alarm->object);
 }
 
-static __inline__ u32 __sys_getresetbuttonraw()
+__inline__ u32 SYS_ResetButtonDown()
 {
 	return (!(_piReg[0]&0x00010000));
 }
@@ -417,7 +417,7 @@ static void __STMEventHandler(u32 event)
 	resetcallback rswcb;
 
 	if(event==STM_EVENT_RESET) {
-		ret = __sys_getresetbuttonraw();
+		ret = SYS_ResetButtonDown();
 		if(ret) {
 			_CPU_ISR_Disable(level);
 			__sys_resetdown = 1;
