@@ -1019,6 +1019,20 @@ void __sdloader_boot()
 	reload();
 }
 
+#if defined(HW_RVL)
+void __SYS_DoPowerCB(void)
+{
+	u32 level;
+	powercallback powcb;
+
+	_CPU_ISR_Disable(level);
+	powcb = __POWCallback;
+	__POWCallback = __POWDefaultHandler;
+	powcb();
+	_CPU_ISR_Restore(level);
+}
+#endif
+
 void __SYS_InitCallbacks()
 {
 #if defined(HW_RVL)
