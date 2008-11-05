@@ -689,7 +689,7 @@ void l2cap_process_sig(struct pbuf *q, struct l2cap_hdr *l2caphdr, struct bd_add
 						/* Give upper layer indication */
 						pcb->state = L2CAP_CLOSED;
 						LOG("l2cap_process_sig: Disconnection request\n");
-						L2CA_ACTION_DISCONN_IND(pcb,L2CAP_DISCONN_R_REQ,ret);
+						L2CA_ACTION_DISCONN_IND(pcb,L2CAP_DISCONN_R_REQ,ret);  
 					}	  
 				}
 				break;

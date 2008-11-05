@@ -66,8 +66,8 @@
 #define HIDP_PROTO_BOOT				0x00
 #define HIDP_PROTO_REPORT			0x01
 
-#define HIDP_DISCONN_UNK 0x00
-#define HIDP_DISCONN_REQ 0x01
+#define HIDP_DISCONN_UNK			0x00
+#define HIDP_DISCONN_REQ			0x01
 
 #ifdef __cplusplus
    extern "C" {

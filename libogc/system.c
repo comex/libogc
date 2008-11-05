@@ -262,11 +262,6 @@ static __inline__ void __lwp_syswd_free(alarm_st *alarm)
 	__lwp_objmgr_free(&sys_alarm_objects,&alarm->object);
 }
 
-__inline__ u32 SYS_ResetButtonDown()
-{
-	return (!(_piReg[0]&0x00010000));
-}
-
 static void __init_syscall_array() {
 	__syscalls.sbrk_r = __libogc_sbrk_r;
 	__syscalls.lock_init = __libogc_lock_init;
@@ -1110,6 +1105,11 @@ void SYS_PreMain()
 	CONF_Init();
 	WII_Initialize();
 #endif
+}
+
+u32 SYS_ResetButtonDown()
+{
+	return (!(_piReg[0]&0x00010000));
 }
 
 #if defined(HW_DOL)

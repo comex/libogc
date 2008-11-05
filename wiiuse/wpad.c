@@ -57,11 +57,11 @@ static s32 __wpad_onreset(s32 final);
 static s32 __wpad_disconnect(struct _wpad_cb *wpdcb);
 static void __wpad_eventCB(struct wiimote_t *wm,s32 event);
 
+static void __wpad_def_powcb(s32 chan);
+static WPADPowerCallback __wpad_powcb = __wpad_def_powcb;
+
 extern void __wiiuse_sensorbar_enable(int enable);
-
-void __wpad_def_powcb(s32 chan);
-
-WPADPowerCallback __wpad_powcb = __wpad_def_powcb;
+extern void __SYS_DoPowerCB(void);
 
 static sys_resetinfo __wpad_resetinfo = {
 	{},
@@ -76,6 +76,11 @@ static s32 __wpad_onreset(s32 final)
 		WPAD_Shutdown();
 	}
 	return 1;
+}
+
+static void __wpad_def_powcb(s32 chan)
+{
+	__SYS_DoPowerCB();
 }
 
 static void __wpad_timeouthandler(syswd_t alarm)
@@ -453,20 +458,14 @@ static void __wpad_eventCB(struct wiimote_t *wm,s32 event)
 			memset(&wpaddata[chan],0,sizeof(WPADData));
 			memset(wpdcb->queue_int,0,(sizeof(WPADData)*EVENTQUEUE_LENGTH));
 			__wpads_active &= ~(0x01<<chan);
-			if(event == WIIUSE_DISCONNECT)
-				__wpad_powcb(chan);
+
+			if(event==WIIUSE_DISCONNECT) __wpad_powcb(chan);
 			break;
 		default:
 			break;
 	}
 }
 
-void __SYS_DoPowerCB(void);
-
-void __wpad_def_powcb(s32 chan)
-{
-	__SYS_DoPowerCB();
-}
 
 s32 WPAD_Init()
 {
@@ -825,6 +824,7 @@ s32 WPAD_SetEventBufs(s32 chan, WPADData *bufs, u32 cnt)
 void WPAD_SetPowerCallback(WPADPowerCallback powercb)
 {
 	u32 level;
+
 	_CPU_ISR_Disable(level);
 	if(powercb)
 		__wpad_powcb = powercb;

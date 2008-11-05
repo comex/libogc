@@ -68,7 +68,7 @@ static struct _console_data_s stdcon;
 static struct _console_data_s *curr_con = NULL;
 static void *_console_buffer = NULL;
 
-static u32 __gecko_status = -1;
+static s32 __gecko_status = -1;
 static u32 __gecko_safe = 0;
 
 extern u8 console_font_8x16[];
@@ -439,11 +439,11 @@ int __console_write(struct _reent *r,int fd,const char *ptr,int len)
 	console_data_s *con;
 	char chr;
 
-	if(__gecko_status >= 0) {
+	if(__gecko_status>=0) {
 		if(__gecko_safe)
-			usb_sendbuffer_safe(__gecko_status, ptr, len);
+			usb_sendbuffer_safe(__gecko_status,ptr,len);
 		else
-			usb_sendbuffer(__gecko_status, ptr, len);
+			usb_sendbuffer(__gecko_status,ptr,len);
 	}
 
 	if(!curr_con) return -1;
@@ -557,16 +557,16 @@ void CON_GetPosition(int *col, int *row)
 	}
 }
 
-void CON_EnableGecko(int channel, int safe)
+void CON_EnableGecko(int channel,int safe)
 {
-	if(channel != -1 && (channel > 1 || !usb_isgeckoalive(channel)))
-		channel = -1;
+	if(channel && (channel>1 || !usb_isgeckoalive(channel))) channel = -1;
+
 	__gecko_status = channel;
 	__gecko_safe = safe;
 
-	if(__gecko_status != -1)
-	{
+	if(__gecko_status!=-1) {
 		devoptab_list[STD_OUT] = &dotab_stdout;
 		devoptab_list[STD_ERR] = &dotab_stdout;
 	}
 }
+

@@ -828,7 +828,7 @@ err_t l2cap_disconnected_ind(void *arg, struct l2cap_pcb *pcb, err_t err)
 		bte->state = (u32)STATE_DISCONNECTED;
 		__bte_close_ctrl_queue(bte);
 		if(bte->disconn_cfm!=NULL) {
-			if(err == L2CAP_DISCONN_R_REQ)
+			if(err==L2CAP_DISCONN_R_REQ)
 				bte->disconn_cfm(bte->cbarg,bte,HIDP_DISCONN_REQ);
 			else
 				bte->disconn_cfm(bte->cbarg,bte,HIDP_DISCONN_UNK);
