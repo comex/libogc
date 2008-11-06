@@ -125,8 +125,8 @@ static void event_status(struct wiimote_t *wm,ubyte *msg)
 	else if(!ir && WIIMOTE_IS_SET(wm,WIIMOTE_STATE_IR)) WIIMOTE_DISABLE_STATE(wm, WIIMOTE_STATE_IR);
 
 	if(attachment) {
-		if(!WIIMOTE_IS_SET(wm,WIIMOTE_STATE_EXP) && !WIIMOTE_IS_SET(wm,WIIMOTE_STATE_EXP_FAILED)) {
-			wiiuse_handshake_expansion(wm,NULL,0);
+		if(!WIIMOTE_IS_SET(wm,WIIMOTE_STATE_EXP) && !WIIMOTE_IS_SET(wm,WIIMOTE_STATE_EXP_FAILED) && !WIIMOTE_IS_SET(wm,WIIMOTE_STATE_EXP_HANDSHAKE)) {
+			wiiuse_handshake_expansion_start(wm);
 			goto done;
 		}
 	} else {

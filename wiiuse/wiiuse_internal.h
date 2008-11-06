@@ -107,7 +107,9 @@
 /* offsets in wiimote memory */
 #define WM_MEM_OFFSET_CALIBRATION	0x16
 #define WM_EXP_MEM_BASE				0x04A40000
-#define WM_EXP_MEM_ENABLE			0x04A40040
+#define WM_EXP_MEM_ENABLE1			0x04A400F0
+#define WM_EXP_MEM_ENABLE2			0x04A400FB
+#define WM_EXP_MEM_KEY				0x04A40040
 #define WM_EXP_MEM_CALIBR			0x04A40020
 
 #define WM_REG_IR					0x04B00030
@@ -153,9 +155,9 @@
  */
 
 /* encrypted expansion id codes (located at 0x04A400FC) */
-#define EXP_ID_CODE_NUNCHUK					0x9A1EFEFE
-#define EXP_ID_CODE_CLASSIC_CONTROLLER		0x9A1EFDFD
-#define EXP_ID_CODE_GUITAR					0x9A1EFDFB
+#define EXP_ID_CODE_NUNCHUK					0xa4200000
+#define EXP_ID_CODE_CLASSIC_CONTROLLER		0xa4200101
+#define EXP_ID_CODE_GUITAR					0xa4200303
 
 #define EXP_HANDSHAKE_LEN					224
 

@@ -59,7 +59,7 @@ static void guitar_hero_3_pressed_buttons(struct guitar_hero_3_t* gh3, short now
  *	@return	Returns 1 if handshake was successful, 0 if not.
  */
 int guitar_hero_3_handshake(struct wiimote_t* wm, struct guitar_hero_3_t* gh3, ubyte* data, uword len) {
-	int i;
+	//int i;
 	int offset = 0;
 
 	/*
@@ -74,8 +74,8 @@ int guitar_hero_3_handshake(struct wiimote_t* wm, struct guitar_hero_3_t* gh3, u
 	gh3->whammy_bar = 0.0f;
 
 	/* decrypt data */
-	for (i = 0; i < len; ++i)
-		data[i] = (data[i] ^ 0x17) + 0x17;
+	/*for (i = 0; i < len; ++i)
+		data[i] = (data[i] ^ 0x17) + 0x17;*/
 
 	if (data[offset] == 0xFF) {
 		/*
@@ -136,11 +136,11 @@ void guitar_hero_3_disconnected(struct guitar_hero_3_t* gh3)
  *	@param msg		The message specified in the event packet.
  */
 void guitar_hero_3_event(struct guitar_hero_3_t* gh3, ubyte* msg) {
-	int i;
+	//int i;
 
 	/* decrypt data */
-	for (i = 0; i < 6; ++i)
-		msg[i] = (msg[i] ^ 0x17) + 0x17;
+	/*for (i = 0; i < 6; ++i)
+		msg[i] = (msg[i] ^ 0x17) + 0x17;*/
 
 	guitar_hero_3_pressed_buttons(gh3, BIG_ENDIAN_SHORT(*(short*)(msg + 4)));
 

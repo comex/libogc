@@ -34,7 +34,7 @@ static void nunchuk_pressed_buttons(struct nunchuk_t* nc, ubyte now) {
 
 int nunchuk_handshake(struct wiimote_t *wm,struct nunchuk_t *nc,ubyte *data,uword len)
 {
-	int i;
+	//int i;
 	int offset = 0;
 
 	nc->btns = 0;
@@ -43,7 +43,7 @@ int nunchuk_handshake(struct wiimote_t *wm,struct nunchuk_t *nc,ubyte *data,uwor
 	nc->flags = &wm->flags;
 	nc->accel_calib = wm->accel_calib;
 
-	for(i=0;i<len;i++) data[i] = (data[i]^0x17)+0x17;
+	//for(i=0;i<len;i++) data[i] = (data[i]^0x17)+0x17;
 	if(data[offset]==0xff) {
 		if(data[offset+16]==0xff) {
 			wiiuse_read_data(wm,data,WM_EXP_MEM_CALIBR,EXP_HANDSHAKE_LEN,wiiuse_handshake_expansion);
@@ -89,11 +89,11 @@ void nunchuk_disconnected(struct nunchuk_t* nc)
  *	@param msg		The message specified in the event packet.
  */
 void nunchuk_event(struct nunchuk_t* nc, ubyte* msg) {
-	int i;
+	//int i;
 
 	/* decrypt data */
-	for (i = 0; i < 6; ++i)
-		msg[i] = (msg[i] ^ 0x17) + 0x17;
+	/*for (i = 0; i < 6; ++i)
+		msg[i] = (msg[i] ^ 0x17) + 0x17;*/
 
 	/* get button states */
 	nunchuk_pressed_buttons(nc, msg[5]);

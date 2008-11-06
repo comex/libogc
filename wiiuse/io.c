@@ -49,51 +49,66 @@ void wiiuse_handshake(struct wiimote_t *wm,ubyte *data,uword len)
 	}
 }
 
-void wiiuse_handshake_expansion_enabled(struct wiimote_t *wm,ubyte *data,uword len)
+void wiiuse_handshake_expansion_start(struct wiimote_t *wm)
 {
-	ubyte *buf;
-
-	buf = __lwp_wkspace_allocate(sizeof(ubyte)*EXP_HANDSHAKE_LEN);
-	wiiuse_read_data(wm,buf,WM_EXP_MEM_CALIBR,EXP_HANDSHAKE_LEN,wiiuse_handshake_expansion);
-
+	if(WIIMOTE_IS_SET(wm,WIIMOTE_STATE_EXP) || WIIMOTE_IS_SET(wm,WIIMOTE_STATE_EXP_FAILED) || WIIMOTE_IS_SET(wm,WIIMOTE_STATE_EXP_HANDSHAKE))
+		return;
+	wm->expansion_state = 0;
 	WIIMOTE_ENABLE_STATE(wm, WIIMOTE_STATE_EXP_HANDSHAKE);
+	wiiuse_handshake_expansion(wm, NULL, 0);
 }
 
 void wiiuse_handshake_expansion(struct wiimote_t *wm,ubyte *data,uword len)
 {
 	int id;
-	ubyte buf;
+	ubyte val;
+	ubyte *buf;
 
-	if(data==NULL) {
-		buf = 0x00;
-		wiiuse_write_data(wm,WM_EXP_MEM_ENABLE,&buf,1,wiiuse_handshake_expansion_enabled);
-		return;
-	}
-
-	id = BIG_ENDIAN_LONG(*(int*)(&data[220]));
-	switch(id) {
-		case EXP_ID_CODE_NUNCHUK:
-			if(!nunchuk_handshake(wm,&wm->exp.nunchuk,data,len)) return;
+	switch(wm->expansion_state) {
+		/* These two initialization writes disable the encryption */
+		case 0:
+			wm->expansion_state = 1;
+			val = 0x55;
+			wiiuse_write_data(wm,WM_EXP_MEM_ENABLE1,&val,1,wiiuse_handshake_expansion);
 			break;
-		case EXP_ID_CODE_CLASSIC_CONTROLLER:
-			if(!classic_ctrl_handshake(wm,&wm->exp.classic,data,len)) return;
+		case 1:
+			wm->expansion_state = 2;
+			val = 0x00;
+			wiiuse_write_data(wm,WM_EXP_MEM_ENABLE2,&val,1,wiiuse_handshake_expansion);
 			break;
-		case EXP_ID_CODE_GUITAR:
-			if(!guitar_hero_3_handshake(wm,&wm->exp.gh3,data,len)) return;
+		case 2:
+			wm->expansion_state = 3;
+			buf = __lwp_wkspace_allocate(sizeof(ubyte)*EXP_HANDSHAKE_LEN);
+			wiiuse_read_data(wm,buf,WM_EXP_MEM_CALIBR,EXP_HANDSHAKE_LEN,wiiuse_handshake_expansion);
 			break;
-		default:
-			WIIMOTE_DISABLE_STATE(wm,WIIMOTE_STATE_EXP_HANDSHAKE);
-			WIIMOTE_ENABLE_STATE(wm,WIIMOTE_STATE_EXP_FAILED);
+		case 3:
+			if(!data || !len) return;
+			id = BIG_ENDIAN_LONG(*(int*)(&data[220]));
+			switch(id) {
+				case EXP_ID_CODE_NUNCHUK:
+					if(!nunchuk_handshake(wm,&wm->exp.nunchuk,data,len)) return;
+					break;
+				case EXP_ID_CODE_CLASSIC_CONTROLLER:
+					if(!classic_ctrl_handshake(wm,&wm->exp.classic,data,len)) return;
+					break;
+				case EXP_ID_CODE_GUITAR:
+					if(!guitar_hero_3_handshake(wm,&wm->exp.gh3,data,len)) return;
+					break;
+				default:
+					WIIMOTE_DISABLE_STATE(wm,WIIMOTE_STATE_EXP_HANDSHAKE);
+					WIIMOTE_ENABLE_STATE(wm,WIIMOTE_STATE_EXP_FAILED);
+					__lwp_wkspace_free(data);
+					wiiuse_status(wm,NULL);
+					return;
+			}
 			__lwp_wkspace_free(data);
-			wiiuse_status(wm,NULL);
-			return;
-	}
-	__lwp_wkspace_free(data);
 
-	WIIMOTE_DISABLE_STATE(wm,WIIMOTE_STATE_EXP_HANDSHAKE);
-	WIIMOTE_ENABLE_STATE(wm,WIIMOTE_STATE_EXP);
-	wiiuse_set_ir_mode(wm);
-	wiiuse_status(wm,NULL);
+			WIIMOTE_DISABLE_STATE(wm,WIIMOTE_STATE_EXP_HANDSHAKE);
+			WIIMOTE_ENABLE_STATE(wm,WIIMOTE_STATE_EXP);
+			wiiuse_set_ir_mode(wm);
+			wiiuse_status(wm,NULL);
+			break;
+	}
 }
 
 void wiiuse_disable_expansion(struct wiimote_t *wm)
@@ -118,7 +133,7 @@ void wiiuse_disable_expansion(struct wiimote_t *wm)
 			break;
 	}
 
-	WIIMOTE_DISABLE_STATE(wm, (WIIMOTE_STATE_EXP|WIIMOTE_STATE_EXP_HANDSHAKE));
+	WIIMOTE_DISABLE_STATE(wm, WIIMOTE_STATE_EXP);
 	wm->exp.type = EXP_NONE;
 
 	wiiuse_set_ir_mode(wm);

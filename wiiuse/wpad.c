@@ -295,7 +295,6 @@ static void __save_state(struct wiimote_t* wm) {
 static u32 __wpad_read_expansion(struct wiimote_t *wm,WPADData *data, struct _wpad_thresh *thresh)
 {
 	int state_changed = 0;
-	data->exp.type = wm->exp.type;
 	switch(data->exp.type) {
 		case EXP_NUNCHUK:
 			data->exp.nunchuk = wm->exp.nunchuk;
@@ -333,6 +332,7 @@ static void __wpad_read_wiimote(struct wiimote_t *wm, WPADData *data, s32 *idle_
 	int state_changed = 0;
 	data->err = WPAD_ERR_TRANSFER;
 	data->data_present = 0;
+	data->exp.type = wm->exp.type;
 	if(wm && WIIMOTE_IS_SET(wm,WIIMOTE_STATE_CONNECTED)) {
 		if(WIIMOTE_IS_SET(wm,WIIMOTE_STATE_HANDSHAKE_COMPLETE)) {
 			switch(wm->event_buf[0]) {
