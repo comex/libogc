@@ -157,7 +157,7 @@
 /* encrypted expansion id codes (located at 0x04A400FC) */
 #define EXP_ID_CODE_NUNCHUK					0xa4200000
 #define EXP_ID_CODE_CLASSIC_CONTROLLER		0xa4200101
-#define EXP_ID_CODE_GUITAR					0xa4200303
+#define EXP_ID_CODE_GUITAR					0xa4200103
 
 #define EXP_HANDSHAKE_LEN					224
 
