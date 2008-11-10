@@ -2,6 +2,8 @@
 Copyright (c) 2002,2003, Christian Nowak <chnowak@web.de>
 All rights reserved.
 
+Modified by Francisco Muñoz 'Hermes' (www.elotrolado.net) MAY 2008
+
 Redistribution and use in source and binary forms, with or without modification, are 
 permitted provided that the following conditions are met:
 
@@ -22,6 +24,13 @@ PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR B
 INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, 
 STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF 
 THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+*/
+
+
+/* added by Hermes:
+ 
+- code to auto-pause the song when it finish and break the infinite loop playing
+
 */
 
 #include <stdio.h>
@@ -48,7 +57,7 @@ extern int deltavline;
 #endif
 
 #ifdef GEKKO
-#include "video.h"
+#include "ogc/video.h"
 
 static u32 *inc_tabs[2] = {NULL,NULL};
 static u32 *bpm_tabs[2] = {NULL,NULL};
@@ -983,6 +992,7 @@ u32 process ( MOD * mod )
         mod->patternline = 0;
         if (mod->songpos>=mod->song_length)
           {
+			if(mod->notify) *mod->notify=TRUE; // auto-pause by Hermes
             mod->songpos = 0;
             mod->patternline = 0;
           }
@@ -1004,6 +1014,7 @@ u32 process ( MOD * mod )
           }
         if (mod->songpos>=mod->song_length)
           {
+			if(mod->notify) *mod->notify=TRUE; // auto-pause by Hermes
             mod->songpos = 0;
             mod->patternline = 0;
           }
