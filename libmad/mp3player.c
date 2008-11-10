@@ -4,6 +4,8 @@
  *   nForce@Sympatico.ca                                                   *
  ***************************************************************************/
 
+// Modified by Hermes to include SNDLIB / ASNDLIB support
+
 #include <asm.h>
 #include <processor.h>
 #include <stdlib.h>
@@ -19,7 +21,18 @@
 
 #include "mp3player.h"
 
-#define ADMA_BUFFERSIZE			(4992)
+#include "asnd.h"
+
+static int it_have_samples=0;
+
+static u32 mp3_volume=255;
+
+#ifndef __SNDLIB_H__
+	#define ADMA_BUFFERSIZE			(4992)
+#else
+	#define ADMA_BUFFERSIZE			(8192)
+#endif
+
 #define STACKSIZE				(32768)
 
 #define DATABUFFER_SIZE			(32768)
@@ -167,15 +180,29 @@ static __inline__ s32 buf_put(struct _outbuffer_s *buf,void *data,s32 len)
 		for(i=0;i<(len>>2);i++)
 			*buf->put++ = *p++;
 	}
+	
 
 	if(buf->buf_filled==0 && buf_used(buf)>=(DATABUFFER_SIZE>>1)) {
 		buf->buf_filled = 1;
 		memset(OutputBuffer[CurrentBuffer],0,ADMA_BUFFERSIZE);
+
+		#ifndef __SNDLIB_H__
+
 		DCFlushRange(OutputBuffer[CurrentBuffer],ADMA_BUFFERSIZE);
 		AUDIO_InitDMA((u32)OutputBuffer[CurrentBuffer],ADMA_BUFFERSIZE);
 		AUDIO_StartDMA();
 		CurrentBuffer ^= 1;
+		#else
+	
+		it_have_samples=0;
+		
+		SND_SetVoice(0, VOICE_STEREO_16BIT, 48000, 0, (void *) OutputBuffer[CurrentBuffer], ADMA_BUFFERSIZE, mp3_volume, mp3_volume, DataTransferCallback);
+		CurrentBuffer ^= 1;
+		
+		#endif
+		
 	}
+	
 
 	return len;
 }
@@ -200,8 +227,17 @@ void MP3Player_Init()
 {
 	if(!init_done) {
 		init_done = 1;
+	#ifndef	__SNDLIB_H__
+
 		AUDIO_Init(NULL);
 		AUDIO_SetDSPSampleRate(AI_SAMPLERATE_48KHZ);
+
+	#else
+
+		SND_Pause(0);
+		SND_StopVoice(0);
+
+	#endif
 	}
 }
 
@@ -268,7 +304,11 @@ static void *StreamPlay(void *arg)
 	LWP_InitQueue(&thQueue);
 	Init3BandState(&eqs[0],880,5000,48000);
 	Init3BandState(&eqs[1],880,5000,48000);
+
+	#ifndef	__SNDLIB_H__
+
 	AUDIO_RegisterDMACallback(DataTransferCallback);
+	#endif
 
 	mad_stream_init(&Stream);
 	mad_frame_init(&Frame);
@@ -331,8 +371,12 @@ static void *StreamPlay(void *arg)
 	while(MP3Playing==TRUE)
 		LWP_ThreadSleep(thQueue);
 
+#ifndef SND_LIB
     AUDIO_StopDMA();
 	AUDIO_RegisterDMACallback(NULL);
+#else
+	SND_StopVoice(0);
+#endif
 	LWP_CloseQueue(thQueue);
 
 	thr_running = FALSE;
@@ -412,10 +456,48 @@ static s16 Do3Band(EQState *es,s16 sample)
 
 static void DataTransferCallback()
 {
+
+	#ifndef __SNDLIB_H__
 	AUDIO_StopDMA();
 	AUDIO_InitDMA((u32)OutputBuffer[CurrentBuffer],ADMA_BUFFERSIZE);
 	AUDIO_StartDMA();
-
+	
 	CurrentBuffer ^= 1;
 	MP3Playing = (buf_get(&OutputRingBuffer,OutputBuffer[CurrentBuffer],ADMA_BUFFERSIZE)>0);
+	#else
+	if(thr_running != TRUE) {MP3Playing = (buf_get(&OutputRingBuffer,OutputBuffer[CurrentBuffer],ADMA_BUFFERSIZE)>0);return;}
+	
+	if(it_have_samples==1) // OK. I Have news samples
+		{
+		if(SND_AddVoice(0, (void *) OutputBuffer[CurrentBuffer], ADMA_BUFFERSIZE)==SND_OK)
+			{
+			it_have_samples=0;
+			CurrentBuffer ^= 1;
+			}
+		
+		
+		}
+	
+
+	if(!(SND_TestPointer(0,  (void *) OutputBuffer[CurrentBuffer]) && SND_StatusVoice(0)!=SND_UNUSED)) // double buffer protection
+	if(it_have_samples==0) 
+		{
+		MP3Playing = (buf_get(&OutputRingBuffer,OutputBuffer[CurrentBuffer],ADMA_BUFFERSIZE)>0);
+		it_have_samples=1;
+		}
+
+	#endif
+	
 }
+
+void MP3Player_Volume(u32 volume)
+{
+	if(volume>255) volume=255;
+
+	mp3_volume=volume;
+
+	#ifdef __SNDLIB_H__
+	SND_ChangeVolumeVoice(0, volume, volume);
+	#endif
+}
+
