@@ -97,7 +97,7 @@ void l2cap_tmr()
 							pcb->state = L2CAP_CLOSED;
 							/* Indicate disconnect to upper layer */
 							LOG("l2cap_tmr: Max number of retransmissions (rtx) has expired\n");
-							L2CA_ACTION_DISCONN_IND(pcb,L2CAP_DISCONN_R_RTX,ret);
+							L2CA_ACTION_DISCONN_IND(pcb,ERR_OK,ret);
 						} else {
 							--sig->nrtx;
 							/* Indicate timeout to upper layer */
@@ -117,7 +117,7 @@ void l2cap_tmr()
 							pcb->state = L2CAP_CLOSED;
 							/* Indicate disconnect to upper layer */
 							LOG("l2cap_tmr: Max number of retransmissions (ertx) has expired\n");
-							L2CA_ACTION_DISCONN_IND(pcb,L2CAP_DISCONN_R_ERTX,ret);
+							L2CA_ACTION_DISCONN_IND(pcb,ERR_OK,ret);
 						} else {
 							--sig->nrtx;
 							/* Indicate timeout to upper layer */
@@ -692,7 +692,7 @@ void l2cap_process_sig(struct pbuf *q, struct l2cap_hdr *l2caphdr, struct bd_add
 						/* Give upper layer indication */
 						pcb->state = L2CAP_CLOSED;
 						LOG("l2cap_process_sig: Disconnection request\n");
-						L2CA_ACTION_DISCONN_IND(pcb,L2CAP_DISCONN_R_REQ,ret);  
+						L2CA_ACTION_DISCONN_IND(pcb,ERR_OK,ret);  
 					}	  
 				}
 				break;
@@ -1426,7 +1426,7 @@ void lp_disconnect_ind(struct bd_addr *bdaddr, u8_t reason)
 		if(bd_addr_cmp(&(pcb->remote_bdaddr), bdaddr)) {// && pcb->state != L2CAP_CLOSED) {
 			pcb->state = L2CAP_CLOSED;
 			LOG("lp_disconnect_ind: Notify application\n");
-			L2CA_ACTION_DISCONN_IND(pcb,L2CAP_DISCONN_R_BASE,ret);
+			L2CA_ACTION_DISCONN_IND(pcb,ERR_OK,ret);
 		}
 		pcb = tpcb;
 	}

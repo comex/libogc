@@ -448,7 +448,6 @@ static void __wpad_eventCB(struct wiimote_t *wm,s32 event)
 			__wpads_active |= (0x01<<chan);
 			break;
 		case WIIUSE_DISCONNECT:
-		case WIIUSE_UNEXPECTED_DISCONNECT:
 			chan = wm->unid;
 			wpdcb = &__wpdcb[chan];
 			wpdcb->wm = wm;
@@ -462,7 +461,6 @@ static void __wpad_eventCB(struct wiimote_t *wm,s32 event)
 			memset(&wpaddata[chan],0,sizeof(WPADData));
 			memset(wpdcb->queue_int,0,(sizeof(WPADData)*EVENTQUEUE_LENGTH));
 			__wpads_active &= ~(0x01<<chan);
-
 			break;
 		default:
 			break;
