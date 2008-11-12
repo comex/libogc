@@ -1345,7 +1345,7 @@ static void hci_cc_info_param(u8_t ocf,struct pbuf *p)
 		case HCI_READ_BD_ADDR:
 			if(((u8_t*)p->payload)[0]==HCI_SUCCESS) {
 				bdaddr = (void*)((u8_t*)p->payload+1);
-				LOG("hci_cc_info_param(HCI_READ_BD_ADDR): %02x:%02x:%02x:%02x:%02x:%02x",bdaddr.addr[0],bdaddr.addr[1],bdaddr.addr[2],bdaddr.addr[3],bdaddr.addr[4],bdaddr.addr[5]);
+				LOG("hci_cc_info_param(HCI_READ_BD_ADDR): %02x:%02x:%02x:%02x:%02x:%02x",bdaddr->addr[0],bdaddr->addr[1],bdaddr->addr[2],bdaddr->addr[3],bdaddr->addr[4],bdaddr->addr[5]);
 				bd_addr_set(&(hci_dev->bdaddr),bdaddr);
 			}
 			break;
@@ -1651,7 +1651,7 @@ void hci_event_handler(struct pbuf *p)
 			HCI_EVENT_LINK_KEY_NOT(hci_dev, bdaddr, ((u8_t *)p->payload) + 6, ret); /* Notify application.*/
 			break;
 		default:
-			//LOG("hci_event_input: Undefined event code 0x%x\n", evhdr->code);
+			LOG("hci_event_input: Undefined event code 0x%x\n", evthdr->code);
 			break;
 	}
 }
