@@ -479,6 +479,11 @@ s32 BTE_ReadStoredLinkKey(struct linkkey_info *keys,u8 max_cnt,btecallback cb)
 	return ERR_OK;
 }
 
+void (* BTE_DisconnectionCallback(void (* callback)(struct bd_addr *bdaddr, u8 reason)))(struct bd_addr *bdaddr, u8 reason)
+{
+	return l2cap_disconnect_bb(callback);
+}
+
 struct bte_pcb* bte_new()
 {
 	struct bte_pcb *pcb;

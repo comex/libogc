@@ -126,6 +126,7 @@ s32 BTE_ApplyPatch(btecallback cb);
 s32 BTE_InitSub(btecallback cb);
 s32 BTE_ReadStoredLinkKey(struct linkkey_info *keys,u8 max_cnt,btecallback cb);
 
+void (* BTE_DisconnectionCallback(void (* callback)(struct bd_addr *bdaddr, u8 reason)))(struct bd_addr *bdaddr, u8 reason);
 
 struct bte_pcb* bte_new();
 void bte_arg(struct bte_pcb *pcb,void *arg);

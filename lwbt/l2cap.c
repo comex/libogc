@@ -28,6 +28,8 @@ struct l2cap_sig *l2cap_tmp_sig = NULL;
 struct l2cap_seg *l2cap_insegs = NULL;
 struct l2cap_seg *l2cap_tmp_inseg = NULL;
 
+void (* l2cap_disconnect_bb_cb)(struct bd_addr *bdaddr, u8_t reason) = NULL;
+
 /* Forward declarations */
 static u16_t l2cap_cid_alloc(void);
 
@@ -57,6 +59,7 @@ void l2cap_init()
 	l2cap_tmp_sig = NULL;
 	l2cap_insegs = NULL;
 	l2cap_tmp_inseg = NULL;
+	l2cap_disconnect_bb_cb = NULL;
 
 	/* Initialize the signal identifier (0x00 shall never be used) */
 	sigid_nxt = 0x00;
@@ -1411,7 +1414,7 @@ void lp_connect_ind(struct bd_addr *bdaddr)
  * timeout event..
  */
 /*-----------------------------------------------------------------------------------*/
-void lp_disconnect_ind(struct bd_addr *bdaddr)
+void lp_disconnect_ind(struct bd_addr *bdaddr, u8_t reason)
 {
 	struct l2cap_pcb *pcb, *tpcb;
 	err_t ret;
@@ -1427,6 +1430,24 @@ void lp_disconnect_ind(struct bd_addr *bdaddr)
 		}
 		pcb = tpcb;
 	}
+	if(l2cap_disconnect_bb_cb)
+		l2cap_disconnect_bb_cb(bdaddr, reason);
+}
+
+/*-----------------------------------------------------------------------------------*/
+/* 
+ * l2cap_disconnect_bb():
+ * 
+ * Register a callback to obtain the disconnection reason from the baseband
+ */
+/*-----------------------------------------------------------------------------------*/
+void (*l2cap_disconnect_bb(void (* l2ca_disconnect_bb)(struct bd_addr *bdaddr, u8_t reason)))(struct bd_addr *bdaddr, u8_t reason)
+{
+	void (*oldcb)(struct bd_addr *bdaddr, u8_t reason);
+
+	oldcb = l2cap_disconnect_bb_cb;
+	l2cap_disconnect_bb_cb = l2ca_disconnect_bb;
+	return oldcb;
 }
 
 /*-----------------------------------------------------------------------------------*/
