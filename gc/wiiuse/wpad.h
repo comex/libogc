@@ -115,7 +115,7 @@ typedef struct _wpad_data
 	u32 btns_u;
 
 	struct ir_t ir;
-	struct vec3b_t accel;
+	struct vec3w_t accel;
 	struct orient_t orient;
 	struct gforce_t gforce;
 	struct expansion_t exp;
@@ -148,7 +148,7 @@ u32 WPAD_ButtonsHeld(int chan);
 void WPAD_IR(int chan, struct ir_t *ir);
 void WPAD_Orientation(int chan, struct orient_t *orient);
 void WPAD_GForce(int chan, struct gforce_t *gforce);
-void WPAD_Accel(int chan, struct vec3b_t *accel);
+void WPAD_Accel(int chan, struct vec3w_t *accel);
 void WPAD_Expansion(int chan, struct expansion_t *exp);
 
 #ifdef __cplusplus

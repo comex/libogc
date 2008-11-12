@@ -996,7 +996,7 @@ void WPAD_GForce(int chan, struct gforce_t *gforce)
 	*gforce = wpaddata[chan].gforce;
 }
 
-void WPAD_Accel(int chan, struct vec3b_t *accel)
+void WPAD_Accel(int chan, struct vec3w_t *accel)
 {
 	if(chan<0 || chan>=WPAD_MAX_WIIMOTES || accel==NULL ) return;
 	*accel = wpaddata[chan].accel;

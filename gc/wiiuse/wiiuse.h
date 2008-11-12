@@ -267,6 +267,13 @@ typedef struct vec3b_t {
 	ubyte x, y, z;
 } vec3b_t;
 
+/**
+ *	@struct vec3w_t
+ *	@brief Unsigned x,y,z word vector.
+ */
+typedef struct vec3w_t {
+	uword x, y, z;
+} vec3w_t;
 
 /**
  *	@struct vec3f_t
@@ -307,8 +314,8 @@ typedef struct gforce_t {
  *	@brief Accelerometer struct. For any device with an accelerometer.
  */
 typedef struct accel_t {
-	struct vec3b_t cal_zero;		/**< zero calibration					*/
-	struct vec3b_t cal_g;			/**< 1g difference around 0cal			*/
+	struct vec3w_t cal_zero;		/**< zero calibration					*/
+	struct vec3w_t cal_g;			/**< 1g difference around 0cal			*/
 
 	float st_roll;					/**< last smoothed roll value			*/
 	float st_pitch;					/**< last smoothed roll pitch			*/
@@ -429,7 +436,7 @@ typedef struct nunchuk_t {
 	ubyte btns_held;				/**< what buttons are being held down		*/
 	ubyte btns_released;			/**< what buttons were just released this	*/
 
-	struct vec3b_t accel;			/**< current raw acceleration data			*/
+	struct vec3w_t accel;			/**< current raw acceleration data			*/
 	struct orient_t orient;			/**< current orientation on each axis		*/
 	struct gforce_t gforce;			/**< current gravity forces on each axis	*/
 } nunchuk_t;
@@ -507,7 +514,7 @@ typedef struct wiimote_state_t {
 	unsigned short btns;
 
 	struct ir_t ir;
-	struct vec3b_t accel;
+	struct vec3w_t accel;
 	struct expansion_t exp;
 } wiimote_state_t;
 
@@ -581,7 +588,7 @@ typedef struct wiimote_t {
 	WCONST struct accel_t accel_calib;		/**< wiimote accelerometer calibration		*/
 	WCONST struct expansion_t exp;			/**< wiimote expansion device				*/
 
-	WCONST struct vec3b_t accel;			/**< current raw acceleration data			*/
+	WCONST struct vec3w_t accel;			/**< current raw acceleration data			*/
 	WCONST struct orient_t orient;			/**< current orientation on each axis		*/
 	WCONST struct gforce_t gforce;			/**< current gravity forces on each axis	*/
 

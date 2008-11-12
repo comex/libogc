@@ -28,13 +28,13 @@ void wiiuse_handshake(struct wiimote_t *wm,ubyte *data,uword len)
 		case 1:
 			wm->handshake_state++;
 
-			accel->cal_zero.x = data[0];
-			accel->cal_zero.y = data[1];
-			accel->cal_zero.z = data[2];
+			accel->cal_zero.x = ((data[0]<<2)|((data[3]>>4)&3));
+			accel->cal_zero.y = ((data[1]<<2)|((data[3]>>2)&3));
+			accel->cal_zero.z = ((data[2]<<2)|(data[3]&3));
 
-			accel->cal_g.x = (data[4] - accel->cal_zero.x);
-			accel->cal_g.y = (data[5] - accel->cal_zero.y);
-			accel->cal_g.z = (data[6] - accel->cal_zero.z);
+			accel->cal_g.x = (((data[4]<<2)|((data[7]>>4)&3)) - accel->cal_zero.x);
+			accel->cal_g.y = (((data[5]<<2)|((data[7]>>2)&3)) - accel->cal_zero.y);
+			accel->cal_g.z = (((data[6]<<2)|(data[7]&3)) - accel->cal_zero.z);
 			__lwp_wkspace_free(data);
 			
 			WIIMOTE_DISABLE_STATE(wm, WIIMOTE_STATE_HANDSHAKE);
