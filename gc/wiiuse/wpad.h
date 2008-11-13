@@ -26,7 +26,6 @@ enum {
 #define WPAD_BUTTON_DOWN						0x0400
 #define WPAD_BUTTON_UP							0x0800
 #define WPAD_BUTTON_PLUS						0x1000
-#define WPAD_BUTTON_UNKNOWN						0x8000
 											
 #define WPAD_NUNCHUK_BUTTON_Z					(0x0001<<16)
 #define WPAD_NUNCHUK_BUTTON_C					(0x0002<<16)
