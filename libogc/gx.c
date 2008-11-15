@@ -2709,7 +2709,6 @@ u32 GX_GetTexBufferSize(u16 wd,u16 ht,u32 fmt,u8 mipmap,u8 maxlod)
 			break;
 		case GX_TF_Z8:
 		case GX_TF_I8:
-		case GX_TF_IA8:
 		case GX_CTF_RA8:
 		case GX_CTF_A8:
 		case GX_CTF_R8:
@@ -2722,6 +2721,7 @@ u32 GX_GetTexBufferSize(u16 wd,u16 ht,u32 fmt,u8 mipmap,u8 maxlod)
 			xshift = 3;
 			yshift = 2;
 			break;
+		case GX_TF_IA8:
 		case GX_TF_Z16:
 		case GX_TF_Z24X8:
 		case GX_CTF_Z16L:
