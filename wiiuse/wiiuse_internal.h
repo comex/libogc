@@ -169,7 +169,7 @@
 
 /* wiimote state flags - (some duplicated in wiiuse.h)*/
 #define WIIMOTE_STATE_DEV_FOUND					0x00001
-#define WIIMOTE_STATE_DEV_REGISTER				0x00002
+//#define WIIMOTE_STATE_DEV_REGISTER				0x00002
 #define WIIMOTE_STATE_HANDSHAKE					0x00004	/* actual connection exists but no handshake yet */
 #define WIIMOTE_STATE_HANDSHAKE_COMPLETE		0x00008	/* actual connection exists but no handshake yet */
 #define WIIMOTE_STATE_CONNECTED					0x00010
