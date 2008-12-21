@@ -53,6 +53,7 @@ void wiiuse_handshake_expansion_start(struct wiimote_t *wm)
 {
 	if(WIIMOTE_IS_SET(wm,WIIMOTE_STATE_EXP) || WIIMOTE_IS_SET(wm,WIIMOTE_STATE_EXP_FAILED) || WIIMOTE_IS_SET(wm,WIIMOTE_STATE_EXP_HANDSHAKE))
 		return;
+
 	wm->expansion_state = 0;
 	WIIMOTE_ENABLE_STATE(wm, WIIMOTE_STATE_EXP_HANDSHAKE);
 	wiiuse_handshake_expansion(wm, NULL, 0);
@@ -62,7 +63,7 @@ void wiiuse_handshake_expansion(struct wiimote_t *wm,ubyte *data,uword len)
 {
 	int id;
 	ubyte val;
-	ubyte *buf;
+	ubyte *buf = NULL;
 
 	switch(wm->expansion_state) {
 		/* These two initialization writes disable the encryption */

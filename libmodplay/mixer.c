@@ -1,8 +1,8 @@
 /*
-Copyright (c) 2002,2003, Christian Nowak <chnowak@web.de> 
+Copyright (c) 2002,2003, Christian Nowak <chnowak@web.de>
 All rights reserved.
 
-Modified by Francisco Muñoz 'Hermes' (www.elotrolado.net) MAY 2008
+Modified by Francisco Muï¿½oz 'Hermes' (www.elotrolado.net) MAY 2008
 
 Redistribution and use in source and binary forms, with or without modification, are 
 permitted provided that the following conditions are met:
@@ -39,27 +39,17 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define PREFILL_WORD 32768
 #elif defined(GP32)
 #define PREFILL_WORD 32768
-#elif defined(GAMECUBE)
-#define PREFILL_WORD 0
-#elif defined(GEKKO) // added by Hermes
+#elif defined(GEKKO)
 #define PREFILL_WORD 0
 #else
 #define PREFILL_WORD 32768
 #endif
 
-
-/* added by Hermes:
- 
-- add saturate in MIX_SAMPLES 
-- changed some types from unsigned to signed (it use samples signed of 16 bits)
-
-*/
-
 #define MIX_SAMPLES \
-                acum =(s32)b[i]+ (s32)  ((((s32)data[playpos.aword.high]*volume)>>6) << shiftval); \
-                if(acum<-32768) acum=-32768;if(acum>32767) acum=32767; \
-				b[i]=acum;playpos.adword+=incval; \
- \
+				accum = (s32)b[i] + (s32)((((s32)data[playpos.aword.high]*volume)>>6) << shiftval); \
+				if(accum<-32768) accum = -32768; if(accum>32767) accum = 32767; \
+                b[i] = accum; \
+                playpos.adword+=incval; \
                 if ( playpos.adword>=loop_end ) \
                   { \
                     if (mod->instrument[mod->instnum[voice]].looped) \
@@ -74,12 +64,12 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 s32 mix_mono_16bit ( MOD * mod, s16 * buf, s32 numSamples )
   {
+    s32 accum;
     s32 voice, i, j;
     s16 * b = buf;
     s32 shiftval = mod->shiftval;
     s32 numIterations;
     s32 numIterationsRest;
-	int acum;
     
     numIterations = numSamples>>4;
     numIterationsRest = numSamples&((1<<4)-1);
@@ -124,9 +114,9 @@ s32 mix_mono_16bit ( MOD * mod, s16 * buf, s32 numSamples )
             playpos.adword = mod->playpos[voice];
 
             if ( voice<mod->num_voices )
-              volume = (volume*(u32)mod->musicvolume)>>6;
+              volume = (volume*(s32)mod->musicvolume)>>6;
             else
-              volume = (volume*(u32)mod->sfxvolume)>>6;
+              volume = (volume*(s32)mod->sfxvolume)>>6;
 
             if (mod->freq==32000 || mod->freq==48000)
               incval >>= 2;
@@ -162,11 +152,11 @@ s32 mix_mono_16bit ( MOD * mod, s16 * buf, s32 numSamples )
 
 s32 mix_stereo_16bit ( MOD * mod, s16 * buf, s32 numSamples )
   {
+    s32 accum;
     s32 voice, i, j;
     s16 * b = buf;
     s32 shiftval = mod->shiftval+1;
     s32 numIterations, numIterationsRest;
-	int acum;
 
     numIterations = (numSamples)>>2;
     numIterationsRest = (numSamples)&((1<<2)-1);
@@ -200,9 +190,9 @@ s32 mix_stereo_16bit ( MOD * mod, s16 * buf, s32 numSamples )
             s32 volume = mod->volume[voice];
             
             if ( voice<mod->num_voices )
-              volume = (volume*(u32)mod->musicvolume)>>6;
+              volume = (volume*(s32)mod->musicvolume)>>6;
             else
-              volume = (volume*(u32)mod->sfxvolume)>>6;
+              volume = (volume*(s32)mod->sfxvolume)>>6;
 
             playpos.adword = mod->playpos[voice];            
             if (mod->freq==32000 || mod->freq==48000)

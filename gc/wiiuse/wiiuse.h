@@ -260,20 +260,21 @@ typedef struct vec2b_t {
 
 
 /**
- *	@struct vec3b_t
- *	@brief Unsigned x,y,z byte vector.
- */
+*	@struct vec3b_t
+*	@brief Unsigned x,y,z byte vector.
+*/
 typedef struct vec3b_t {
 	ubyte x, y, z;
 } vec3b_t;
 
 /**
- *	@struct vec3w_t
- *	@brief Unsigned x,y,z word vector.
- */
+*	@struct vec3w_t
+*	@brief Unsigned x,y,z word vector.
+*/
 typedef struct vec3w_t {
 	uword x, y, z;
 } vec3w_t;
+
 
 /**
  *	@struct vec3f_t

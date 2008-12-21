@@ -101,12 +101,13 @@ static s32 __wiiuse_connected(void *arg,struct bte_pcb *pcb,u8 err)
 
 static s32 __wiiuse_sent(void *arg,struct bte_pcb *pcb,u8 err)
 {
+	struct cmd_blk_t *cmd = NULL;
 	struct wiimote_listen_t *wml = (struct wiimote_listen_t*)arg;
 	struct wiimote_t *wm = wml->wm;
 
 	if(!wm) return ERR_OK;
 
-	struct cmd_blk_t *cmd = wm->cmd_head;
+	cmd = wm->cmd_head;
 
 	if(!cmd) return ERR_OK;
 	if(cmd->state!=CMD_SENT) return ERR_OK;
@@ -161,8 +162,7 @@ int wiiuse_register(struct wiimote_listen_t *wml, struct bd_addr *bdaddr, struct
 	bte_disconnected(wml->sock,__wiiuse_disconnected);
 
 	err = bte_registerdeviceasync(wml->sock,bdaddr,__wiiuse_connected);
-	if(err==ERR_OK)
-		return 1;
+	if(err==ERR_OK) return 1;
 
 	return 0;
 }

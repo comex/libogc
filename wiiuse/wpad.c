@@ -16,7 +16,10 @@
 #include "lwp_threads.h"
 #include "ogcsys.h"
 
-#define EVENTQUEUE_LENGTH		16
+#define EVENTQUEUE_LENGTH			16
+
+#define DISCONNECT_BATTERY_DIED		0x14
+#define DISCONNECT_POWER_OFF		0x15
 
 struct _wpad_thresh{
 	s32 btns;
@@ -59,14 +62,11 @@ static s32 __wpad_disconnect(struct _wpad_cb *wpdcb);
 static void __wpad_eventCB(struct wiimote_t *wm,s32 event);
 
 static void __wpad_def_powcb(s32 chan);
-static WPADShutdownCallback __wpad_powcb = __wpad_def_powcb;
 static WPADShutdownCallback __wpad_batcb = NULL;
+static WPADShutdownCallback __wpad_powcb = __wpad_def_powcb;
 
 extern void __wiiuse_sensorbar_enable(int enable);
 extern void __SYS_DoPowerCB(void);
-
-#define DISCONNECT_BATTERY_DIED 0x14
-#define DISCONNECT_POWER_OFF 0x15
 
 static sys_resetinfo __wpad_resetinfo = {
 	{},
@@ -562,7 +562,7 @@ s32 WPAD_Init()
 		__wiiuse_sensorbar_enable(1);
 
 		BTE_Init();
-		BTE_DisconnectionCallback(__wpad_disconnectCB);
+		BTE_SetDisconnectCallback(__wpad_disconnectCB);
 		BTE_InitCore(__initcore_finished);
 
 		SYS_CreateAlarm(&__wpad_timer);
@@ -879,24 +879,24 @@ s32 WPAD_SetEventBufs(s32 chan, WPADData *bufs, u32 cnt)
 	return WPAD_ERR_NONE;
 }
 
-void WPAD_SetPowerButtonCallback(WPADShutdownCallback powercb)
+void WPAD_SetPowerButtonCallback(WPADShutdownCallback cb)
 {
 	u32 level;
 
 	_CPU_ISR_Disable(level);
-	if(powercb)
-		__wpad_powcb = powercb;
+	if(cb)
+		__wpad_powcb = cb;
 	else
 		__wpad_powcb = __wpad_def_powcb;
 	_CPU_ISR_Restore(level);
 }
 
-void WPAD_SetBatteryDeadCallback(WPADShutdownCallback doubleacb)
+void WPAD_SetBatteryDeadCallback(WPADShutdownCallback cb)
 {
 	u32 level;
 
 	_CPU_ISR_Disable(level);
-	__wpad_batcb = doubleacb;
+	__wpad_batcb = cb;
 	_CPU_ISR_Restore(level);
 }
 

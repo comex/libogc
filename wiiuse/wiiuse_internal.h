@@ -22,7 +22,7 @@
  *	You should have received a copy of the GNU General Public License
  *	along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- *	$Header: /cvsroot/devkitpro/libogc/wiiuse/wiiuse_internal.h,v 1.6 2008/06/01 03:07:53 wntrmute Exp $
+ *	$Header: /lvm/shared/ds/ds/cvs/devkitpro-cvsbackup/libogc/wiiuse/wiiuse_internal.h,v 1.8 2008-12-10 16:16:40 shagkur Exp $
  *
  */
 

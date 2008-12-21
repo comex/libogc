@@ -22,7 +22,7 @@
  *	You should have received a copy of the GNU General Public License
  *	along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- *	$Header: /cvsroot/devkitpro/libogc/wiiuse/guitar_hero_3.h,v 1.1 2008/05/08 09:42:14 shagkur Exp $
+ *	$Header: /lvm/shared/ds/ds/cvs/devkitpro-cvsbackup/libogc/wiiuse/guitar_hero_3.h,v 1.1 2008-05-08 09:42:14 shagkur Exp $
  *
  */
 

@@ -121,8 +121,8 @@ typedef struct _mod
     u8 sfxvolume;
     
     BOOL set;
-    BOOL *notify; // used to auto-pause  the song (it modify 'paused' in MODPlay structure (see gcmodplay.h)
-    
+    BOOL *notify;
+
   } MOD;
 
 s32 MOD_SetMOD ( MOD *, u8 * );
