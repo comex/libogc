@@ -1,4 +1,4 @@
-// Modified by Francisco Mu�oz 'Hermes' (www.elotrolado.net) MAY 2008
+// Modified by Francisco Mu�oz 'Hermes' (www.entuwii.net) MAY 2008
 
 #include <stdlib.h>
 #include <stdio.h>
