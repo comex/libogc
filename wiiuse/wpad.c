@@ -547,10 +547,10 @@ void __wpad_disconnectCB(struct bd_addr *offaddr, u8 reason)
 		for(i=0;i<__wpad_devs.num_registered;i++) {
 			BD_ADDR(&(bdaddr),__wpad_devs.registered[i].bdaddr[5],__wpad_devs.registered[i].bdaddr[4],__wpad_devs.registered[i].bdaddr[3],__wpad_devs.registered[i].bdaddr[2],__wpad_devs.registered[i].bdaddr[1],__wpad_devs.registered[i].bdaddr[0]);
 			if(bd_addr_cmp(offaddr,&bdaddr)) {
-				if(reason == DISCONNECT_BATTERY_DIED)
-					__wpad_batcb(i);
-				else if(reason == DISCONNECT_POWER_OFF)
-					__wpad_powcb(i);
+				if(reason == DISCONNECT_BATTERY_DIED) {
+					if(__wpad_batcb) __wpad_batcb(i);		//sanity check since this pointer can be NULL.
+				} else if(reason == DISCONNECT_POWER_OFF)
+					__wpad_powcb(i);						//no sanity check because there's a default callback iff not otherwise set.
 				break;
 			}
 		}
