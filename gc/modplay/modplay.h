@@ -2,7 +2,7 @@
 Copyright (c) 2002,2003, Christian Nowak <chnowak@web.de>
 All rights reserved.
 
-Modified by Francisco Muñoz 'Hermes' (www.elotrolado.net) MAY 2008
+Modified by Francisco Muñoz 'Hermes' (www.entuwii.net) MAY 2008
 
 Redistribution and use in source and binary forms, with or without modification, are 
 permitted provided that the following conditions are met:
@@ -121,8 +121,8 @@ typedef struct _mod
     u8 sfxvolume;
     
     BOOL set;
-    BOOL *notify; // used to auto-pause  the song (it modify 'paused' in MODPlay structure (see gcmodplay.h)
-    
+    BOOL *notify;
+
   } MOD;
 
 s32 MOD_SetMOD ( MOD *, u8 * );

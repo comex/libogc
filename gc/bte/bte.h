@@ -99,7 +99,9 @@ struct bte_pcb
 	u8 err;
 	u32 state;
 	void *cbarg;
-	struct ctrl_req_t *ctrl_req;
+
+	struct ctrl_req_t *ctrl_req_head;
+	struct ctrl_req_t *ctrl_req_tail;
 
 	lwpq_t cmdq;
 
@@ -122,8 +124,7 @@ s32 BTE_InitCore(btecallback cb);
 s32 BTE_ApplyPatch(btecallback cb);
 s32 BTE_InitSub(btecallback cb);
 s32 BTE_ReadStoredLinkKey(struct linkkey_info *keys,u8 max_cnt,btecallback cb);
-
-void (* BTE_DisconnectionCallback(void (* callback)(struct bd_addr *bdaddr, u8 reason)))(struct bd_addr *bdaddr, u8 reason);
+void (*BTE_SetDisconnectCallback(void (*callback)(struct bd_addr *bdaddr,u8 reason)))(struct bd_addr *bdaddr,u8 reason);
 
 struct bte_pcb* bte_new();
 void bte_arg(struct bte_pcb *pcb,void *arg);

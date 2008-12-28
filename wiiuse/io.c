@@ -6,6 +6,7 @@
 #include "nunchuk.h"
 #include "classic.h"
 #include "guitar_hero_3.h"
+#include "wiiboard.h"
 #include "io.h"
 #include "lwp_wkspace.h"
 
@@ -53,6 +54,7 @@ void wiiuse_handshake_expansion_start(struct wiimote_t *wm)
 {
 	if(WIIMOTE_IS_SET(wm,WIIMOTE_STATE_EXP) || WIIMOTE_IS_SET(wm,WIIMOTE_STATE_EXP_FAILED) || WIIMOTE_IS_SET(wm,WIIMOTE_STATE_EXP_HANDSHAKE))
 		return;
+
 	wm->expansion_state = 0;
 	WIIMOTE_ENABLE_STATE(wm, WIIMOTE_STATE_EXP_HANDSHAKE);
 	wiiuse_handshake_expansion(wm, NULL, 0);
@@ -62,7 +64,7 @@ void wiiuse_handshake_expansion(struct wiimote_t *wm,ubyte *data,uword len)
 {
 	int id;
 	ubyte val;
-	ubyte *buf;
+	ubyte *buf = NULL;
 
 	switch(wm->expansion_state) {
 		/* These two initialization writes disable the encryption */
@@ -93,6 +95,9 @@ void wiiuse_handshake_expansion(struct wiimote_t *wm,ubyte *data,uword len)
 					break;
 				case EXP_ID_CODE_GUITAR:
 					if(!guitar_hero_3_handshake(wm,&wm->exp.gh3,data,len)) return;
+					break;
+				case EXP_ID_CODE_WIIBOARD:
+					if(!wii_board_handshake(wm,&wm->exp.wb,data,len)) return;
 					break;
 				default:
 					WIIMOTE_DISABLE_STATE(wm,WIIMOTE_STATE_EXP_HANDSHAKE);
@@ -128,6 +133,10 @@ void wiiuse_disable_expansion(struct wiimote_t *wm)
 		case EXP_GUITAR_HERO_3:
 			guitar_hero_3_disconnected(&wm->exp.gh3);
 			wm->event = WIIUSE_GUITAR_HERO_3_CTRL_REMOVED;
+			break;
+		case EXP_WII_BOARD:
+			wii_board_disconnected(&wm->exp.wb);
+			wm->event = WIIUSE_WII_BOARD_REMOVED;
 			break;
 		default:
 			break;

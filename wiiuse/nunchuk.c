@@ -92,9 +92,10 @@ void nunchuk_event(struct nunchuk_t* nc, ubyte* msg) {
 	//int i;
 
 	/* decrypt data */
-	/*for (i = 0; i < 6; ++i)
-		msg[i] = (msg[i] ^ 0x17) + 0x17;*/
-
+	/*
+	for (i = 0; i < 6; ++i)
+		msg[i] = (msg[i] ^ 0x17) + 0x17;
+	*/
 	/* get button states */
 	nunchuk_pressed_buttons(nc, msg[5]);
 

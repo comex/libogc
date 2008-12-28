@@ -18,10 +18,9 @@
 #include <system.h>
 #include <ogcsys.h>
 #include <malloc.h>
+#include <asndlib.h>
 
 #include "mp3player.h"
-
-#include "asnd.h"
 
 static int it_have_samples=0;
 
@@ -461,7 +460,7 @@ static void DataTransferCallback()
 	AUDIO_StopDMA();
 	AUDIO_InitDMA((u32)OutputBuffer[CurrentBuffer],ADMA_BUFFERSIZE);
 	AUDIO_StartDMA();
-	
+
 	CurrentBuffer ^= 1;
 	MP3Playing = (buf_get(&OutputRingBuffer,OutputBuffer[CurrentBuffer],ADMA_BUFFERSIZE)>0);
 	#else

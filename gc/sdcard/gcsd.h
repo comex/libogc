@@ -1,13 +1,13 @@
 /*
 
-  wii_sd.h
+	gcsd.h
 
-  Hardware interface for libfat Wii internal SD
+	Hardware routines for reading and writing to SD geckos connected
+	to the memory card ports.
 
- Copyright (c) 2008
-   Michael Wiedenbauer (shagkur)
-   Dave Murphy (WinterMute)
+	These functions are just wrappers around libsdcard's functions.
 
+ Copyright (c) 2008 Sven "svpe" Peter <svpe@gmx.net>
 	
  Redistribution and use in source and binary forms, with or without modification,
  are permitted provided that the following conditions are met:
@@ -31,14 +31,15 @@
  EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef __WIISD_IO_H__
-#define __WIISD_IO_H__
+#ifndef __GCSD_H__
+#define __GCSD_H__
 
-#include <gctypes.h>
+#include <gccore.h>
 #include <ogc/disc_io.h>
 
-#define DEVICE_TYPE_WII_SD (('W'<<24)|('I'<<16)|('S'<<8)|'D')
+#define DEVICE_TYPE_GC_SD	(('G'<<24)|('C'<<16)|('S'<<8)|'D')
 
-extern const DISC_INTERFACE __io_wiisd;
+extern const DISC_INTERFACE __io_gcsda;
+extern const DISC_INTERFACE __io_gcsdb;
 
 #endif

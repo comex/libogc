@@ -22,41 +22,32 @@
  *	You should have received a copy of the GNU General Public License
  *	along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- *	$Header: /lvm/shared/ds/ds/cvs/devkitpro-cvsbackup/libogc/wiiuse/guitar_hero_3.h,v 1.1 2008-05-08 09:42:14 shagkur Exp $
+ *	$Header: /cvsroot/devkitpro/libogc/wiiuse/wiiboard.h,v 1.1 2008/05/08 09:42:14 shagkur Exp $
  *
  */
 
 /**
  *	@file
- *	@brief Guitar Hero 3 expansion device.
+ *	@brief Wii board expansion device.
  */
 
-#ifndef GUITAR_HERO_3_H_INCLUDED
-#define GUITAR_HERO_3_H_INCLUDED
+#ifndef WII_BOARD_H_INCLUDED
+#define WII_BOARD_H_INCLUDED
 
 #include "wiiuse_internal.h"
-
-#define GUITAR_HERO_3_JS_MIN_X				0xC5
-#define GUITAR_HERO_3_JS_MAX_X				0xFC
-#define GUITAR_HERO_3_JS_CENTER_X			0xE0
-#define GUITAR_HERO_3_JS_MIN_Y				0xC5
-#define GUITAR_HERO_3_JS_MAX_Y				0xFA
-#define GUITAR_HERO_3_JS_CENTER_Y			0xE0
-#define GUITAR_HERO_3_WHAMMY_BAR_MIN		0xEF
-#define GUITAR_HERO_3_WHAMMY_BAR_MAX		0xFA
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-int guitar_hero_3_handshake(struct wiimote_t* wm, struct guitar_hero_3_t* gh3, ubyte* data, uword len);
+int wii_board_handshake(struct wiimote_t* wm, struct wii_board_t* wb, ubyte* data, uword len);
 
-void guitar_hero_3_disconnected(struct guitar_hero_3_t* gh3);
+void wii_board_disconnected(struct wii_board_t* wb);
 
-void guitar_hero_3_event(struct guitar_hero_3_t* gh3, ubyte* msg);
+void wii_board_event(struct wii_board_t* wb, ubyte* msg);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif // GUITAR_HERO_3_H_INCLUDED
+#endif

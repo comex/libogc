@@ -20,6 +20,7 @@
 #include "nunchuk.h"
 #include "classic.h"
 #include "guitar_hero_3.h"
+#include "wiiboard.h"
 #include "ir.h"
 #include "io.h"
 
@@ -163,6 +164,9 @@ static void handle_expansion(struct wiimote_t *wm,ubyte *msg)
 		case EXP_GUITAR_HERO_3:
 			guitar_hero_3_event(&wm->exp.gh3, msg);
 			break;
+		case EXP_WII_BOARD:
+			wii_board_event(&wm->exp.wb, msg);
+			break;
 		default:
 			break;
 	}
@@ -217,9 +221,9 @@ void parse_event(struct wiimote_t *wm)
 		case WM_RPT_BTN_ACC:
 			wiiuse_pressed_buttons(wm,msg);
 
-			wm->accel.x = (msg[2]<<2) | ((msg[0]>>5)&3);
-			wm->accel.y = (msg[3]<<2) | ((msg[1]>>4)&2);
-			wm->accel.z = (msg[4]<<2) | ((msg[1]>>5)&2);
+			wm->accel.x = (msg[2]<<2)|((msg[0]>>5)&3);
+			wm->accel.y = (msg[3]<<2)|((msg[1]>>4)&2);
+			wm->accel.z = (msg[4]<<2)|((msg[1]>>5)&2);
 #ifndef GEKKO
 			/* calculate the remote orientation */
 			calculate_orientation(&wm->accel_calib, &wm->accel, &wm->orient, WIIMOTE_IS_FLAG_SET(wm, WIIUSE_SMOOTHING));
@@ -231,9 +235,9 @@ void parse_event(struct wiimote_t *wm)
 		case WM_RPT_BTN_ACC_IR:
 			wiiuse_pressed_buttons(wm,msg);
 
-			wm->accel.x = (msg[2]<<2) | ((msg[0]>>5)&3);
-			wm->accel.y = (msg[3]<<2) | ((msg[1]>>4)&2);
-			wm->accel.z = (msg[4]<<2) | ((msg[1]>>5)&2);
+			wm->accel.x = (msg[2]<<2)|((msg[0]>>5)&3);
+			wm->accel.y = (msg[3]<<2)|((msg[1]>>4)&2);
+			wm->accel.z = (msg[4]<<2)|((msg[1]>>5)&2);
 #ifndef GEKKO
 			/* calculate the remote orientation */
 			calculate_orientation(&wm->accel_calib, &wm->accel, &wm->orient, WIIMOTE_IS_FLAG_SET(wm, WIIUSE_SMOOTHING));
@@ -251,9 +255,9 @@ void parse_event(struct wiimote_t *wm)
 			/* button - motion - expansion */
 			wiiuse_pressed_buttons(wm, msg);
 
-			wm->accel.x = (msg[2]<<2) | ((msg[0]>>5)&3);
-			wm->accel.y = (msg[3]<<2) | ((msg[1]>>4)&2);
-			wm->accel.z = (msg[4]<<2) | ((msg[1]>>5)&2);
+			wm->accel.x = (msg[2]<<2)|((msg[0]>>5)&3);
+			wm->accel.y = (msg[3]<<2)|((msg[1]>>4)&2);
+			wm->accel.z = (msg[4]<<2)|((msg[1]>>5)&2);
 #ifndef GEKKO
 			calculate_orientation(&wm->accel_calib, &wm->accel, &wm->orient, WIIMOTE_IS_FLAG_SET(wm, WIIUSE_SMOOTHING));
 			calculate_gforce(&wm->accel_calib, &wm->accel, &wm->gforce);
@@ -269,9 +273,9 @@ void parse_event(struct wiimote_t *wm)
 			/* button - motion - ir - expansion */
 			wiiuse_pressed_buttons(wm, msg);
 
-			wm->accel.x = (msg[2]<<2) | ((msg[0]>>5)&3);
-			wm->accel.y = (msg[3]<<2) | ((msg[1]>>4)&2);
-			wm->accel.z = (msg[4]<<2) | ((msg[1]>>5)&2);
+			wm->accel.x = (msg[2]<<2)|((msg[0]>>5)&3);
+			wm->accel.y = (msg[3]<<2)|((msg[1]>>4)&2);
+			wm->accel.z = (msg[4]<<2)|((msg[1]>>5)&2);
 #ifndef GEKKO
 			calculate_orientation(&wm->accel_calib, &wm->accel, &wm->orient, WIIMOTE_IS_FLAG_SET(wm, WIIUSE_SMOOTHING));
 			calculate_gforce(&wm->accel_calib, &wm->accel, &wm->gforce);

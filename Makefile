@@ -13,8 +13,8 @@ endif
 export PATH	:=	$(DEVKITPPC)/bin:$(PATH)
 
 export LIBOGC_MAJOR	:= 1
-export LIBOGC_MINOR	:= 6
-export LIBOGC_PATCH	:= 0
+export LIBOGC_MINOR	:= 7
+export LIBOGC_PATCH	:= 1
 
 #---------------------------------------------------------------------------------
 PREFIX	:=	powerpc-gekko
@@ -30,7 +30,8 @@ OBJCOPY		:=	$(PREFIX)-objcopy
 BUILD		:=	build
 
 GCC_VERSION	:=	$(shell $(DEVKITPPC)/bin/$(CC) -dumpversion)
-DATESTRING	:=	$(shell date +%Y)$(shell date +%m)$(shell date +%d)
+DATESTRING	:=	$(shell date +%Y%m%d)
+VERSTRING	:=	$(LIBOGC_MAJOR).$(LIBOGC_MINOR).$(LIBOGC_PATCH)
 
 #---------------------------------------------------------------------------------
 ifeq ($(strip $(PLATFORM)),)
@@ -47,6 +48,7 @@ export BTEDIR		:= $(BASEDIR)/lwbt
 export WIIUSEDIR	:= $(BASEDIR)/wiiuse
 export TINYSMBDIR	:= $(BASEDIR)/libtinysmb
 export LIBZDIR		:= $(BASEDIR)/libz
+export LIBASNDDIR	:= $(BASEDIR)/libasnd
 export STUBSDIR		:= $(BASEDIR)/lockstubs
 export DEPS			:=	$(BASEDIR)/deps
 export LIBS			:=	$(BASEDIR)/lib
@@ -76,6 +78,7 @@ BTELIB		:= $(LIBDIR)/libbte
 WIIUSELIB	:= $(LIBDIR)/libwiiuse
 TINYSMBLIB	:= $(LIBDIR)/libtinysmb
 ZLIB		:= $(LIBDIR)/libz
+ASNDLIB		:= $(LIBDIR)/libasnd
 STUBSLIB	:= $(LIBDIR)/libgclibstubs
 
 #---------------------------------------------------------------------------------
@@ -119,6 +122,7 @@ VPATH :=	$(LWIPDIR)				\
 			$(SDCARDDIR)			\
 			$(TINYSMBDIR)		\
 			$(LIBZDIR)		\
+			$(LIBASNDDIR)		\
 			$(STUBSDIR)
 
 
@@ -131,7 +135,7 @@ LWIPOBJ		:=	network.o netio.o gcif.o	\
 			ip_addr.o etharp.o loopif.o
 
 #---------------------------------------------------------------------------------
-OGCOBJ		:=	asnd.o\
+OGCOBJ		:=	\
 			console.o  lwp_priority.o lwp_queue.o lwp_threadq.o lwp_threads.o lwp_sema.o	\
 			lwp_messages.o lwp.o lwp_handler.o lwp_stack.o lwp_mutex.o 	\
 			lwp_watchdog.o lwp_wkspace.o lwp_objmgr.o lwp_heap.o sys_state.o \
@@ -140,10 +144,10 @@ OGCOBJ		:=	asnd.o\
 			cache_asm.o system.o system_asm.o cond.o			\
 			gx.o gu.o gu_psasm.o audio.o cache.o decrementer.o			\
 			message.o card.o aram.o depackrnc.o decrementer_handler.o	\
-			depackrnc1.o dsp.o si.o tdf.o ipc.o ogc_crt0.o \
+			depackrnc1.o dsp.o si.o tpl.o ipc.o ogc_crt0.o \
 			console_font_8x16.o timesupp.o lock_supp.o newlibc.o usbgecko.o \
 			sbrk.o malloc_lock.o kprintf.o stm.o ios.o es.o isfs.o usb.o network_common.o \
-			sdgecko_io.o sdgecko_buf.o argv.o network_wii.o wiisd.o conf.o usbstorage.o \
+			sdgecko_io.o sdgecko_buf.o gcsd.o argv.o network_wii.o wiisd.o conf.o usbstorage.o \
 			texconv.o wiilaunch.o
 
 #---------------------------------------------------------------------------------
@@ -166,7 +170,7 @@ BTEOBJ		:=	bte.o hci.o l2cap.o btmemb.o btmemr.o btpbuf.o physbusif.o
 
 #---------------------------------------------------------------------------------
 WIIUSEOBJ	:=	classic.o dynamics.o events.o guitar_hero_3.o io.o io_wii.o ir.o \
-				nunchuk.o wiiuse.o wpad.o
+				nunchuk.o wiiboard.o wiiuse.o wpad.o
 
 #---------------------------------------------------------------------------------
 TINYSMBOBJ	:=	des.o lmhash.o smb.o
@@ -175,6 +179,9 @@ TINYSMBOBJ	:=	des.o lmhash.o smb.o
 ZLIBOBJ		:=	adler32.o compress.o crc32.o gzio.o uncompr.o \
 			deflate.o trees.o zutil.o inflate.o infback.o \
 			inftrees.o inffast.o
+
+#---------------------------------------------------------------------------------
+ASNDLIBOBJ	:=	asndlib.o
 
 #---------------------------------------------------------------------------------
 # Build rules:
@@ -264,6 +271,8 @@ $(TINYSMBLIB).a: $(TINYSMBOBJ)
 #---------------------------------------------------------------------------------
 $(ZLIB).a: $(ZLIBOBJ)
 #---------------------------------------------------------------------------------
+$(ASNDLIB).a: $(ASNDLIBOBJ)
+#---------------------------------------------------------------------------------
 $(BTELIB).a: $(BTEOBJ)
 #---------------------------------------------------------------------------------
 $(WIIUSELIB).a: $(WIIUSEOBJ)
@@ -306,11 +315,11 @@ dist: install-headers
 #---------------------------------------------------------------------------------
 	@tar    --exclude=*CVS* --exclude=wii --exclude=cube --exclude=*deps* \
 		--exclude=*.bz2  --exclude=*include* --exclude=*lib/* --exclude=*docs/*\
-		-cvjf libogc-src-$(DATESTRING).tar.bz2 *
-	@tar -cvjf libogc-$(DATESTRING).tar.bz2 include lib libogc_license.txt
+		-cvjf libogc-src-$(VERSTRING).tar.bz2 *
+	@tar -cvjf libogc-$(VERSTRING).tar.bz2 include lib libogc_license.txt
 
 
-LIBRARIES	:=	$(OGCLIB).a  $(MODLIB).a $(MADLIB).a $(DBLIB).a $(ZLIB).a $(TINYSMBLIB).a
+LIBRARIES	:=	$(OGCLIB).a  $(MODLIB).a $(MADLIB).a $(DBLIB).a $(ZLIB).a $(TINYSMBLIB).a $(ASNDLIB).a
 
 ifeq ($(PLATFORM),cube)
 LIBRARIES	+=	$(BBALIB).a 

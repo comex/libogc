@@ -910,6 +910,7 @@ static int _ES_open_r (struct _reent *r, void *fileStruct, const char *path, int
 		file->cfd = ES_OpenContent(file->content.index);
 	else
 		file->cfd = ES_OpenTitleContent(file->titleID, file->content.index);
+
 	if(file->cfd<0) {
 		r->_errno = EIO;
 		return -1;
@@ -940,7 +941,7 @@ static int _ES_close_r (struct _reent *r, int fd) {
 	return 0;
 }
 
-static int _ES_read_r (struct _reent *r, int fd, char *ptr, int len) {
+static int _ES_read_r (struct _reent *r, int fd, char *ptr, size_t len) {
 	es_fd *file = (es_fd *) fd;
 	int read = 0;
 	int res;
@@ -996,7 +997,7 @@ static int _ES_read_r (struct _reent *r, int fd, char *ptr, int len) {
 	return read;
 }
 
-static int _ES_seek_r (struct _reent *r, int fd, int where, int whence) {
+static off_t _ES_seek_r (struct _reent *r, int fd, off_t where, int whence) {
 	es_fd *file = (es_fd *) fd;
 	s32 res;
 

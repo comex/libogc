@@ -11,13 +11,6 @@
    extern "C" {
 #endif /* __cplusplus */
 
-// bool is a standard type in cplusplus, but not in c.
-#ifndef __cplusplus
-/** C++ compatible bool for C
-
-*/
-typedef enum { false, true } bool;
-#endif
 /*+----------------------------------------------------------------------------------------------+*/
 typedef unsigned char u8;									///< 8bit unsigned integer
 typedef unsigned short u16;								///< 16bit unsigned integer
@@ -51,6 +44,16 @@ typedef double f64;
 typedef volatile float vf32;
 typedef volatile double vf64;
 /*+----------------------------------------------------------------------------------------------+*/
+
+// bool is a standard type in cplusplus, but not in c.
+#ifndef __cplusplus
+/** C++ compatible bool for C
+
+*/
+typedef u8 bool;
+enum { false, true };
+#endif
+
 typedef unsigned int BOOL;
 /*+----------------------------------------------------------------------------------------------+*/
 // alias type typedefs
@@ -73,6 +76,19 @@ typedef unsigned int BOOL;
 #define NULL			0                        ///< Pointer to 0
 #endif
 /*+----------------------------------------------------------------------------------------------+*/
+#ifndef LITTLE_ENDIAN
+#define LITTLE_ENDIAN  3412
+#endif /* LITTLE_ENDIAN */
+/*+----------------------------------------------------------------------------------------------+*/
+#ifndef BIG_ENDIAN
+#define BIG_ENDIAN     1234
+#endif /* BIGE_ENDIAN */
+/*+----------------------------------------------------------------------------------------------+*/
+#ifndef BYTE_ORDER
+#define BYTE_ORDER     BIG_ENDIAN
+#endif /* BYTE_ORDER */
+/*+----------------------------------------------------------------------------------------------+*/
+
 
 //!	argv structure
 /*!	\struct __argv

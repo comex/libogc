@@ -222,7 +222,7 @@ struct l2cap_pcb* l2cap_new(void);
 
 void lp_connect_ind(struct bd_addr *bdaddr);
 void lp_connect_cfm(struct bd_addr *bdaddr, u8_t encrypt_mode, err_t err);
-void lp_disconnect_ind(struct bd_addr *bdaddr, u8_t reason);
+void lp_disconnect_ind(struct bd_addr *bdaddr,u8_t reason);
 
 err_t l2ca_config_req(struct l2cap_pcb *pcb);
 err_t l2ca_disconnect_req(struct l2cap_pcb *pcb, err_t (* l2ca_disconnect_cfm)(void *arg, struct l2cap_pcb *pcb));
@@ -246,7 +246,7 @@ void l2cap_process_sig(struct pbuf *q, struct l2cap_hdr *l2caphdr, struct bd_add
 err_t l2cap_rexmit_signal(struct l2cap_pcb *pcb, struct l2cap_sig *sig);
 err_t l2cap_connect_ind(struct l2cap_pcb *npcb, struct bd_addr *bdaddr, u16_t psm,err_t (* l2ca_connect_ind)(void *arg, struct l2cap_pcb *pcb, err_t err));
 
-void (*l2cap_disconnect_bb(void (* l2ca_disconnect_bb)(struct bd_addr *bdaddr, u8_t reason)))(struct bd_addr *bdaddr, u8_t reason);
+void (*l2cap_disconnect_bb(void (*l2ca_disconnect_bb)(struct bd_addr *bdaddr,u8_t reason)))(struct bd_addr *bdaddr,u8_t reason);
 
 /* Internal functions and global variables */
 #define L2CA_ACTION_CONN_CFM(pcb,result,status,ret) if((pcb)->l2ca_connect_cfm != NULL) (ret = (pcb)->l2ca_connect_cfm((pcb)->callback_arg,(pcb),(result),(status)))

@@ -22,7 +22,7 @@
  *	You should have received a copy of the GNU General Public License
  *	along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- *	$Header: /cvsroot/devkitpro/libogc/wiiuse/dynamics.c,v 1.1 2008/05/08 09:42:14 shagkur Exp $
+ *	$Header: /lvm/shared/ds/ds/cvs/devkitpro-cvsbackup/libogc/wiiuse/dynamics.c,v 1.2 2008-11-14 13:34:57 shagkur Exp $
  *
  */
 
@@ -227,4 +227,51 @@ void apply_smoothing(struct accel_t* ac, struct orient_t* orient, int type) {
 			return;
 		}
 	}
+}
+
+void calc_balanceboard_state(struct wii_board_t *wb)
+{
+	/*
+	Interpolate values
+	Calculations borrowed from wiili.org - No names to mention sadly :( http://www.wiili.org/index.php/Wii_Balance_Board_PC_Drivers
+	*/
+
+	if(wb->rtr<wb->ctr[1])
+	{
+		wb->tr = 17.0f*(f32)(wb->rtr-wb->ctr[0])/(f32)(wb->ctr[1]-wb->ctr[0]);
+	}
+	else if(wb->rtr >= wb->ctr[1])
+	{
+		wb->tr = 17.0f*(f32)(wb->rtr-wb->ctr[1])/(f32)(wb->ctr[2]-wb->ctr[1]) + 17.0f;
+	}
+
+	if(wb->rtl<wb->ctl[1])
+	{
+		wb->tl = 17.0f*(f32)(wb->rtl-wb->ctl[0])/(f32)(wb->ctl[1]-wb->ctl[0]);
+	}
+	else if(wb->rtl >= wb->ctl[1])
+	{
+		wb->tl = 17.0f*(f32)(wb->rtl-wb->ctl[1])/(f32)(wb->ctl[2]-wb->ctl[1]) + 17.0f;
+	}
+
+	if(wb->rbr<wb->cbr[1])
+	{
+		wb->br = 17.0f*(f32)(wb->rbr-wb->cbr[0])/(f32)(wb->cbr[1]-wb->cbr[0]);
+	}
+	else if(wb->rbr >= wb->cbr[1])
+	{
+		wb->br = 17.0f*(f32)(wb->rbr-wb->cbr[1])/(f32)(wb->cbr[2]-wb->cbr[1]) + 17.0f;
+	}
+
+	if(wb->rbl<wb->cbl[1])
+	{
+		wb->bl = 17.0f*(f32)(wb->rbl-wb->cbl[0])/(f32)(wb->cbl[1]-wb->cbl[0]);
+	}
+	else if(wb->rbl >= wb->cbl[1])
+	{
+		wb->bl = 17.0f*(f32)(wb->rbl-wb->cbl[1])/(f32)(wb->cbl[2]-wb->cbl[1]) + 17.0f;
+	}
+
+	wb->x = (wb->tr+wb->br)/2.0f - (wb->tl+wb->bl)/2.0f;
+	wb->y = (wb->bl+wb->br)/2.0f - (wb->tl+wb->tr)/2.0f;
 }

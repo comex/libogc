@@ -11,18 +11,23 @@
 #include "ir.h"
 #include "dynamics.h"
 #include "guitar_hero_3.h"
+#include "wiiboard.h"
 #include "wiiuse_internal.h"
 #include "wiiuse/wpad.h"
 #include "lwp_threads.h"
 #include "ogcsys.h"
 
-#define EVENTQUEUE_LENGTH		16
+#define EVENTQUEUE_LENGTH			16
+
+#define DISCONNECT_BATTERY_DIED		0x14
+#define DISCONNECT_POWER_OFF		0x15
 
 struct _wpad_thresh{
 	s32 btns;
 	s32 ir;
 	s32 js;
 	s32 acc;
+	s32 wb;
 };
 
 struct _wpad_cb {
@@ -46,11 +51,12 @@ static vu32 __wpads_inited = 0;
 static vs32 __wpads_ponded = 0;
 static u32 __wpad_idletimeout = 300;
 static vu32 __wpads_active = 0;
-static vs32 __wpads_registered = 0;
+static vu32 __wpads_used = 0;
 static wiimote **__wpads = NULL;
+static wiimote_listen __wpads_listen[CONF_PAD_MAX_REGISTERED];
 static WPADData wpaddata[WPAD_MAX_WIIMOTES];
 static struct _wpad_cb __wpdcb[WPAD_MAX_WIIMOTES];
-static conf_pad_device __wpad_devs[WPAD_MAX_WIIMOTES];
+static conf_pads __wpad_devs;
 static struct linkkey_info __wpad_keys[WPAD_MAX_WIIMOTES];
 
 static s32 __wpad_onreset(s32 final);
@@ -58,14 +64,11 @@ static s32 __wpad_disconnect(struct _wpad_cb *wpdcb);
 static void __wpad_eventCB(struct wiimote_t *wm,s32 event);
 
 static void __wpad_def_powcb(s32 chan);
-static WPADShutdownCallback __wpad_powcb = __wpad_def_powcb;
 static WPADShutdownCallback __wpad_batcb = NULL;
+static WPADShutdownCallback __wpad_powcb = __wpad_def_powcb;
 
 extern void __wiiuse_sensorbar_enable(int enable);
 extern void __SYS_DoPowerCB(void);
-
-#define DISCONNECT_BATTERY_DIED 0x14
-#define DISCONNECT_POWER_OFF 0x15
 
 static sys_resetinfo __wpad_resetinfo = {
 	{},
@@ -133,6 +136,51 @@ static void __wpad_setfmt(s32 chan)
 	}
 }
 
+wiimote *__wpad_assign_slot(struct bd_addr *pad_addr)
+{
+	u32 i, level;
+	struct bd_addr bdaddr;
+	//printf("WPAD Assigning slot (active: 0x%02x)\n", __wpads_used);
+	_CPU_ISR_Disable(level);
+
+	// Check for balance board
+	BD_ADDR(&(bdaddr),__wpad_devs.balance_board.bdaddr[5],__wpad_devs.balance_board.bdaddr[4],__wpad_devs.balance_board.bdaddr[3],__wpad_devs.balance_board.bdaddr[2],__wpad_devs.balance_board.bdaddr[1],__wpad_devs.balance_board.bdaddr[0]);
+	if(bd_addr_cmp(pad_addr,&bdaddr)) {
+		if(!(__wpads_used&(1<<WPAD_BALANCE_BOARD))) {
+			__wpads_used |= (0x01<<WPAD_BALANCE_BOARD);
+			_CPU_ISR_Restore(level);
+			return __wpads[WPAD_BALANCE_BOARD];
+		} else {
+			_CPU_ISR_Restore(level);
+			return NULL;
+		}
+	}
+
+	// Try preassigned slots
+	for(i=0; i<CONF_PAD_MAX_ACTIVE && i<WPAD_MAX_WIIMOTES; i++) {
+		BD_ADDR(&(bdaddr),__wpad_devs.active[i].bdaddr[5],__wpad_devs.active[i].bdaddr[4],__wpad_devs.active[i].bdaddr[3],__wpad_devs.active[i].bdaddr[2],__wpad_devs.active[i].bdaddr[1],__wpad_devs.active[i].bdaddr[0]);
+		if(bd_addr_cmp(pad_addr,&bdaddr) && !(__wpads_used & (1<<i))) {
+			//printf("WPAD Got Preassigned Slot %d\n", i);
+			__wpads_used |= (0x01<<i);
+			_CPU_ISR_Restore(level);
+			return __wpads[i];
+		}
+	}
+
+	// No match, pick the first free slot
+	for(i=0; i<WPAD_MAX_WIIMOTES; i++) {
+		if(!(__wpads_used & (1<<i))) {
+			//printf("WPAD Got Free Slot %d\n", i);
+			__wpads_used |= (0x01<<i);
+			_CPU_ISR_Restore(level);
+			return __wpads[i];
+		}
+	}
+	//printf("WPAD All Slots Used\n");
+	_CPU_ISR_Restore(level);
+	return NULL;
+}
+
 static s32 __wpad_init_finished(s32 result,void *usrdata)
 {
 	u32 i;
@@ -141,9 +189,14 @@ static s32 __wpad_init_finished(s32 result,void *usrdata)
 	//printf("__wpad_init_finished(%d)\n",result);
 	
 	if(result==ERR_OK) {
-		for(i=0;__wpads[i] && i<WPAD_MAX_WIIMOTES && i<__wpads_registered;i++) {
-			BD_ADDR(&(bdaddr),__wpad_devs[i].bdaddr[5],__wpad_devs[i].bdaddr[4],__wpad_devs[i].bdaddr[3],__wpad_devs[i].bdaddr[2],__wpad_devs[i].bdaddr[1],__wpad_devs[i].bdaddr[0]);
-			wiiuse_register(__wpads[i],&(bdaddr));
+		for(i=0;/*__wpads[i] && */i<__wpad_devs.num_registered;i++) {
+			BD_ADDR(&(bdaddr),__wpad_devs.registered[i].bdaddr[5],__wpad_devs.registered[i].bdaddr[4],__wpad_devs.registered[i].bdaddr[3],__wpad_devs.registered[i].bdaddr[2],__wpad_devs.registered[i].bdaddr[1],__wpad_devs.registered[i].bdaddr[0]);
+			wiiuse_register(&__wpads_listen[i],&(bdaddr),__wpad_assign_slot);
+		}
+
+		BD_ADDR(&(bdaddr),__wpad_devs.balance_board.bdaddr[5],__wpad_devs.balance_board.bdaddr[4],__wpad_devs.balance_board.bdaddr[3],__wpad_devs.balance_board.bdaddr[2],__wpad_devs.balance_board.bdaddr[1],__wpad_devs.balance_board.bdaddr[0]);
+		if(i<CONF_PAD_MAX_REGISTERED && !bd_addr_cmp(&bdaddr,BD_ADDR_ANY)) {
+			wiiuse_register(&__wpads_listen[i],&(bdaddr),__wpad_assign_slot);
 		}
 		__wpads_inited = WPAD_STATE_ENABLED;
 	}
@@ -255,6 +308,13 @@ static void __wpad_calc_data(WPADData *data,WPADData *lstate,struct accel_t *acc
 			}
 			break;
 
+			case EXP_WII_BOARD:
+			{
+				struct wii_board_t *wb = &data->exp.wb;
+				calc_balanceboard_state(wb);
+			}
+			break;
+
 			default:
 				break;
 		}
@@ -282,6 +342,9 @@ static void __save_state(struct wiimote_t* wm) {
 			break;
 		case EXP_GUITAR_HERO_3:
 			wm->lstate.exp.gh3 = wm->exp.gh3;
+			break;
+		case EXP_WII_BOARD:
+			wm->lstate.exp.wb = wm->exp.wb;
 			break;
 	}
 }
@@ -325,6 +388,13 @@ static u32 __wpad_read_expansion(struct wiimote_t *wm,WPADData *data, struct _wp
 			STATE_CHECK(thresh->js, wm->exp.gh3.wb_raw, wm->lstate.exp.gh3.wb_raw);
 			STATE_CHECK(thresh->js, wm->exp.gh3.js.pos.x, wm->lstate.exp.gh3.js.pos.x);
 			STATE_CHECK(thresh->js, wm->exp.gh3.js.pos.y, wm->lstate.exp.gh3.js.pos.y);
+			break;
+		case EXP_WII_BOARD:
+			data->exp.wb = wm->exp.wb;
+			STATE_CHECK(thresh->wb,wm->exp.wb.rtl,wm->lstate.exp.wb.rtl);
+			STATE_CHECK(thresh->wb,wm->exp.wb.rtr,wm->lstate.exp.wb.rtr);
+			STATE_CHECK(thresh->wb,wm->exp.wb.rbl,wm->lstate.exp.wb.rbl);
+			STATE_CHECK(thresh->wb,wm->exp.wb.rbr,wm->lstate.exp.wb.rbr);
 			break;
 	}
 	return state_changed;
@@ -443,7 +513,7 @@ static void __wpad_eventCB(struct wiimote_t *wm,s32 event)
 			memset(wpdcb->queue_int,0,(sizeof(WPADData)*EVENTQUEUE_LENGTH));
 			wiiuse_set_ir_position(wm,(CONF_GetSensorBarPosition()^1));
 			wiiuse_set_ir_sensitivity(wm,CONF_GetIRSensitivity());
-			wiiuse_set_leds(wm,(WIIMOTE_LED_1<<chan),NULL);
+			wiiuse_set_leds(wm,(WIIMOTE_LED_1<<(chan%WPAD_BALANCE_BOARD)),NULL);
 			__wpad_setfmt(chan);
 			__wpads_active |= (0x01<<chan);
 			break;
@@ -461,6 +531,7 @@ static void __wpad_eventCB(struct wiimote_t *wm,s32 event)
 			memset(&wpaddata[chan],0,sizeof(WPADData));
 			memset(wpdcb->queue_int,0,(sizeof(WPADData)*EVENTQUEUE_LENGTH));
 			__wpads_active &= ~(0x01<<chan);
+			__wpads_used &= ~(0x01<<chan);
 			break;
 		default:
 			break;
@@ -473,13 +544,13 @@ void __wpad_disconnectCB(struct bd_addr *offaddr, u8 reason)
 	int i;
 
 	if(__wpads_inited == WPAD_STATE_ENABLED) {
-		for(i=0;__wpads[i] && i<WPAD_MAX_WIIMOTES && i<__wpads_registered;i++) {
-			BD_ADDR(&(bdaddr),__wpad_devs[i].bdaddr[5],__wpad_devs[i].bdaddr[4],__wpad_devs[i].bdaddr[3],__wpad_devs[i].bdaddr[2],__wpad_devs[i].bdaddr[1],__wpad_devs[i].bdaddr[0]);
+		for(i=0;i<__wpad_devs.num_registered;i++) {
+			BD_ADDR(&(bdaddr),__wpad_devs.registered[i].bdaddr[5],__wpad_devs.registered[i].bdaddr[4],__wpad_devs.registered[i].bdaddr[3],__wpad_devs.registered[i].bdaddr[2],__wpad_devs.registered[i].bdaddr[1],__wpad_devs.registered[i].bdaddr[0]);
 			if(bd_addr_cmp(offaddr,&bdaddr)) {
-				if(reason == DISCONNECT_BATTERY_DIED)
-					__wpad_batcb(i);
-				else if(reason == DISCONNECT_POWER_OFF)
-					__wpad_powcb(i);
+				if(reason == DISCONNECT_BATTERY_DIED) {
+					if(__wpad_batcb) __wpad_batcb(i);		//sanity check since this pointer can be NULL.
+				} else if(reason == DISCONNECT_POWER_OFF)
+					__wpad_powcb(i);						//no sanity check because there's a default callback iff not otherwise set.
 				break;
 			}
 		}
@@ -496,10 +567,9 @@ s32 WPAD_Init()
 	if(__wpads_inited==WPAD_STATE_DISABLED) {
 		__wpads_ponded = 0;
 		__wpads_active = 0;
-		__wpads_registered = 0;
 
 		memset(__wpdcb,0,sizeof(struct _wpad_cb)*WPAD_MAX_WIIMOTES);
-		memset(__wpad_devs,0,sizeof(conf_pad_device)*WPAD_MAX_WIIMOTES);
+		memset(&__wpad_devs,0,sizeof(conf_pads));
 		memset(__wpad_keys,0,sizeof(struct linkkey_info)*WPAD_MAX_WIIMOTES);
 		
 		for(i=0;i<WPAD_MAX_WIIMOTES;i++) {
@@ -507,13 +577,19 @@ s32 WPAD_Init()
 			__wpdcb[i].thresh.ir = WPAD_THRESH_DEFAULT_IR;
 			__wpdcb[i].thresh.acc = WPAD_THRESH_DEFAULT_ACCEL;
 			__wpdcb[i].thresh.js = WPAD_THRESH_DEFAULT_JOYSTICK;
+			__wpdcb[i].thresh.wb = WPAD_THRESH_DEFAULT_BALANCEBOARD;
 		}
 
-		__wpads_registered = CONF_GetPadDevices(__wpad_devs,WPAD_MAX_WIIMOTES);
-		if(__wpads_registered<=0) {
+		if(CONF_GetPadDevices(&__wpad_devs) < 0) {
 			_CPU_ISR_Restore(level);
-			return WPAD_ERR_NONEREGISTERED;
+			return WPAD_ERR_BADCONF;
 		}
+
+		if(__wpad_devs.num_registered == 0)
+			return WPAD_ERR_NONEREGISTERED;
+
+		if(__wpad_devs.num_registered > CONF_PAD_MAX_REGISTERED)
+			return WPAD_ERR_BADCONF;
 
 		__wpads = wiiuse_init(WPAD_MAX_WIIMOTES,__wpad_eventCB);
 		if(__wpads==NULL) {
@@ -524,12 +600,12 @@ s32 WPAD_Init()
 		__wiiuse_sensorbar_enable(1);
 
 		BTE_Init();
-		BTE_DisconnectionCallback(__wpad_disconnectCB);
+		BTE_SetDisconnectCallback(__wpad_disconnectCB);
 		BTE_InitCore(__initcore_finished);
 
 		SYS_CreateAlarm(&__wpad_timer);
 		SYS_RegisterResetFunc(&__wpad_resetinfo);
-	
+
 		tb.tv_sec = 1;
 		tb.tv_nsec = 0;
 		SYS_SetPeriodicAlarm(__wpad_timer,&tb,&tb,__wpad_timeouthandler);
@@ -808,6 +884,7 @@ s32 WPAD_Probe(s32 chan,u32 *type)
 					case WPAD_EXP_NUNCHUK:
 					case WPAD_EXP_CLASSIC:
 					case WPAD_EXP_GUITARHERO3:
+					case WPAD_EXP_WIIBOARD:
 						dev = wm->exp.type;
 						break;
 				}
@@ -841,24 +918,24 @@ s32 WPAD_SetEventBufs(s32 chan, WPADData *bufs, u32 cnt)
 	return WPAD_ERR_NONE;
 }
 
-void WPAD_SetPowerButtonCallback(WPADShutdownCallback powercb)
+void WPAD_SetPowerButtonCallback(WPADShutdownCallback cb)
 {
 	u32 level;
 
 	_CPU_ISR_Disable(level);
-	if(powercb)
-		__wpad_powcb = powercb;
+	if(cb)
+		__wpad_powcb = cb;
 	else
 		__wpad_powcb = __wpad_def_powcb;
 	_CPU_ISR_Restore(level);
 }
 
-void WPAD_SetBatteryDeadCallback(WPADShutdownCallback doubleacb)
+void WPAD_SetBatteryDeadCallback(WPADShutdownCallback cb)
 {
 	u32 level;
 
 	_CPU_ISR_Disable(level);
-	__wpad_batcb = doubleacb;
+	__wpad_batcb = cb;
 	_CPU_ISR_Restore(level);
 }
 
@@ -952,7 +1029,7 @@ s32 WPAD_Rumble(s32 chan, int status)
 	return WPAD_ERR_NONE;
 }
 
-s32 WPAD_SetIdleThresholds(s32 chan, s32 btns, s32 ir, s32 accel, s32 js)
+s32 WPAD_SetIdleThresholds(s32 chan, s32 btns, s32 ir, s32 accel, s32 js, s32 wb)
 {
 	int i;
 	s32 ret;
@@ -960,7 +1037,7 @@ s32 WPAD_SetIdleThresholds(s32 chan, s32 btns, s32 ir, s32 accel, s32 js)
 
 	if(chan == WPAD_CHAN_ALL) {
 		for(i=WPAD_CHAN_0; i<WPAD_MAX_WIIMOTES; i++)
-			if((ret = WPAD_SetIdleThresholds(i,btns,ir,accel,js)) < WPAD_ERR_NONE)
+			if((ret = WPAD_SetIdleThresholds(i,btns,ir,accel,js,wb)) < WPAD_ERR_NONE)
 				return ret;
 		return WPAD_ERR_NONE;
 	}
@@ -977,6 +1054,7 @@ s32 WPAD_SetIdleThresholds(s32 chan, s32 btns, s32 ir, s32 accel, s32 js)
 	__wpdcb[chan].thresh.ir = ir;
 	__wpdcb[chan].thresh.acc = accel;
 	__wpdcb[chan].thresh.js = js;
+	__wpdcb[chan].thresh.wb = wb;
 
 	_CPU_ISR_Restore(level);
 	return WPAD_ERR_NONE;

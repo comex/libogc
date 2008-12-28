@@ -12,6 +12,7 @@ enum {
 	WPAD_CHAN_1,
 	WPAD_CHAN_2,
 	WPAD_CHAN_3,
+	WPAD_BALANCE_BOARD,
 	WPAD_MAX_WIIMOTES,
 };
 											
@@ -61,6 +62,7 @@ enum {
 	WPAD_EXP_NUNCHUK,
 	WPAD_EXP_CLASSIC,
 	WPAD_EXP_GUITARHERO3,
+	WPAD_EXP_WIIBOARD,
 	WPAD_EXP_UNKNOWN = 255
 };
 
@@ -85,6 +87,7 @@ enum {
 #define WPAD_ERR_BAD_CHANNEL					-6
 #define WPAD_ERR_QUEUE_EMPTY					-7
 #define WPAD_ERR_BADVALUE						-8
+#define WPAD_ERR_BADCONF						-9
 
 #define WPAD_DATA_BUTTONS						0x01
 #define WPAD_DATA_ACCEL							0x02
@@ -95,8 +98,9 @@ enum {
 #define WPAD_THRESH_ANY							0
 #define WPAD_THRESH_DEFAULT_BUTTONS				0
 #define WPAD_THRESH_DEFAULT_IR					WPAD_THRESH_IGNORE
-#define WPAD_THRESH_DEFAULT_ACCEL				5
+#define WPAD_THRESH_DEFAULT_ACCEL				20
 #define WPAD_THRESH_DEFAULT_JOYSTICK			2
+#define WPAD_THRESH_DEFAULT_BALANCEBOARD		90
 
 #ifdef __cplusplus
    extern "C" {
@@ -136,11 +140,11 @@ s32 WPAD_SetEventBufs(s32 chan, WPADData *bufs, u32 cnt);
 s32 WPAD_Disconnect(s32 chan);
 void WPAD_Shutdown();
 void WPAD_SetIdleTimeout(u32 seconds);
-void WPAD_SetPowerButtonCallback(WPADShutdownCallback powercb);
-void WPAD_SetBatteryDeadCallback(WPADShutdownCallback doubleacb);
+void WPAD_SetPowerButtonCallback(WPADShutdownCallback cb);
+void WPAD_SetBatteryDeadCallback(WPADShutdownCallback cb);
 s32 WPAD_ScanPads();
 s32 WPAD_Rumble(s32 chan, int status);
-s32 WPAD_SetIdleThresholds(s32 chan, s32 btns, s32 ir, s32 accel, s32 js);
+s32 WPAD_SetIdleThresholds(s32 chan, s32 btns, s32 ir, s32 accel, s32 js, s32 wb);
 WPADData *WPAD_Data(int chan);
 u32 WPAD_ButtonsUp(int chan);
 u32 WPAD_ButtonsDown(int chan);

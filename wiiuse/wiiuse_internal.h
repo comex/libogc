@@ -22,7 +22,7 @@
  *	You should have received a copy of the GNU General Public License
  *	along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- *	$Header: /cvsroot/devkitpro/libogc/wiiuse/wiiuse_internal.h,v 1.6 2008/06/01 03:07:53 wntrmute Exp $
+ *	$Header: /lvm/shared/ds/ds/cvs/devkitpro-cvsbackup/libogc/wiiuse/wiiuse_internal.h,v 1.8 2008-12-10 16:16:40 shagkur Exp $
  *
  */
 
@@ -158,6 +158,7 @@
 #define EXP_ID_CODE_NUNCHUK					0xa4200000
 #define EXP_ID_CODE_CLASSIC_CONTROLLER		0xa4200101
 #define EXP_ID_CODE_GUITAR					0xa4200103
+#define EXP_ID_CODE_WIIBOARD				0xa4200402
 
 #define EXP_HANDSHAKE_LEN					224
 
@@ -169,7 +170,7 @@
 
 /* wiimote state flags - (some duplicated in wiiuse.h)*/
 #define WIIMOTE_STATE_DEV_FOUND					0x00001
-#define WIIMOTE_STATE_DEV_REGISTER				0x00002
+//#define WIIMOTE_STATE_DEV_REGISTER				0x00002
 #define WIIMOTE_STATE_HANDSHAKE					0x00004	/* actual connection exists but no handshake yet */
 #define WIIMOTE_STATE_HANDSHAKE_COMPLETE		0x00008	/* actual connection exists but no handshake yet */
 #define WIIMOTE_STATE_CONNECTED					0x00010
