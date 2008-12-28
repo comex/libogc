@@ -376,6 +376,12 @@ s32 ISFS_Format()
 	return IOS_Ioctl(_fs_fd,ISFS_IOCTL_FORMAT,NULL,0,NULL,0);
 }
 
+s32 ISFS_Shutdown()
+{
+	if(_fs_fd<0) return ISFS_EINVAL;
+	return IOS_Ioctl(_fs_fd,ISFS_IOCTL_SHUTDOWN,NULL,0,NULL,0);
+}
+
 s32 ISFS_FormatAsync(isfscallback cb,void *usrdata)
 {
 	struct isfs_cb *param;

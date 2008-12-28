@@ -30,6 +30,8 @@ typedef s32 (*isfscallback)(s32 result,void *usrdata);
 s32 ISFS_Initialize();
 s32 ISFS_Deinitialize();
 
+s32 ISFS_Format();
+s32 ISFS_Shutdown();
 s32 ISFS_Open(const char *filepath,u8 mode);
 s32 ISFS_OpenAsync(const char *filepath,u8 mode,isfscallback cb,void *usrdata);
 s32 ISFS_Close(s32 fd);

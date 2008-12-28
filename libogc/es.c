@@ -108,7 +108,7 @@ distribution.
 
 static char __es_fs[] ATTRIBUTE_ALIGN(32) = "/dev/es";
 
-static s32 __es_fd = -1;
+/*static*/ s32 __es_fd = -1;
 static s32 __es_hid = -1;
 
 static void __ES_InitFS(void);
