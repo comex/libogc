@@ -108,8 +108,8 @@ struct isfs_cb
 
 static s32 hId = -1;
 
-static s32 _fs_fd = -1;
-static u32 _fs_initialized = 0;
+/*static*/ s32 _fs_fd = -1;
+/*static*/ u32 _fs_initialized = 0;
 static char _dev_fs[] ATTRIBUTE_ALIGN(32) = "/dev/fs";
 
 static s32 __isfsGetStatsCB(s32 result,void *usrdata)
